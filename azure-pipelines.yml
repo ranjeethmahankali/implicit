@@ -9,12 +9,11 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-  task: VSBuild@1
-  inputs:
-    solution: 'ImplicitModeling.sln'
+task: VSBuild@1
+inputs:
+    solution: '**\*.sln'
     vsVersion: '16.0'
     platform: 'x64'
-    configuration: 'Release'
     clean: true
     restoreNugetPackages: true
     msbuildArchitecture: 'x64'
