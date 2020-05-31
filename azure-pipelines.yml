@@ -1,7 +1,7 @@
 # Starter pipeline
 - task: VSBuild@1
   inputs:
-    solution: '**\*.sln'
+    solution: 'ImplicitModeling.sln'
     vsVersion: '16.0'
     platform: 'x64'
     configuration: 'Release'
