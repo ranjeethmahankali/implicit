@@ -32,6 +32,8 @@ static cl::Context s_context;
 static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
+static cl::Program s_program;
+static cl::make_kernel<cl::BufferGL&>* s_kernel;
 
 static bool log_gl_errors(const char* function, const char* file, uint32_t line)
 {
@@ -69,9 +71,9 @@ static void clear_gl_errors()
 static void init_ogl()
 {
     /* Initialize the library */
-    /*glfwWindowHint(GLFW_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_VERSION_MINOR, 6);*/
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     if (!glfwInit())
     {
@@ -81,6 +83,7 @@ static void init_ogl()
 
     /* Create a windowed mode window and its OpenGL context */
     s_window = glfwCreateWindow(WIN_W, WIN_H, "Viewer", NULL, NULL);
+    glfwSetWindowAttrib(s_window, GLFW_RESIZABLE, GLFW_FALSE);
     if (!s_window)
     {
         glfwTerminate();
@@ -104,15 +107,16 @@ static void init_ocl()
 {
     try
     {
+        cl::Platform platform = cl::Platform::getDefault();
         cl_context_properties props[] =
         {
             CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
             CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-            CL_CONTEXT_PLATFORM, (cl_context_properties)(cl::Platform::getDefault())(),
+            CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
             0
         };
         std::vector<cl::Device> devices;
-        cl::Platform::getDefault().getDevices(CL_DEVICE_TYPE_GPU, &devices);
+        platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
         if (devices.empty())
         {
             std::cerr << "No devices found" << std::endl;
@@ -120,6 +124,8 @@ static void init_ocl()
         }
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
+        s_program = cl::Program(s_context, cl_kernel_sources::noise, true);
+        s_kernel = new cl::make_kernel<cl::BufferGL&>(s_program, "k_add_noise");
     }
     catch (cl::Error error)
     {
@@ -162,24 +168,26 @@ static void init_pbo()
     }
 }
 
-void render()
+static void render()
 {
-    static const cl::Program s_program(cl_kernel_sources::noise, true);
-    static cl::make_kernel<cl::BufferGL&> s_kernel(s_program, "k_add_noise");
-    static const std::vector<cl::Memory> memBufs({ s_pBuffer });
-    static const cl::EnqueueArgs args(cl::NDRange(WIN_W, WIN_H));
-
     try
     {
-        /*s_queue.enqueueAcquireGLObjects(&memBufs);
+        cl_mem mem = s_pBuffer();
+        clEnqueueAcquireGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+        s_queue.flush();
         s_queue.finish();
-        s_kernel(args, s_pBuffer);
-        s_queue.enqueueReleaseGLObjects(&memBufs);
-        s_queue.finish();*/
+        if (s_kernel)
+        {
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer);
+        }
+        clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+        s_queue.flush();
+        s_queue.finish();
     }
     catch (cl::Error error)
     {
         std::cerr << "Open CL error" << std::endl;
+        exit(1);
     }
 }
 
@@ -188,7 +196,6 @@ int main()
     init_ogl();
     init_ocl();
     init_pbo();
-    size_t i = 0;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
@@ -209,5 +216,6 @@ int main()
     }
 
     glfwTerminate();
+    delete s_kernel;
     return 0;
 }

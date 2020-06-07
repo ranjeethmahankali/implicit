@@ -7,12 +7,10 @@ uint rand(uint2 coord)
   return result;
 }
 
-kernel void k_add_noise(image2d_t pBuffer)
+kernel void k_add_noise(global uint* pBuffer)
 {
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
-  uint result = rand(coord);
-
-  float val = ((float)(result % 256) / 256.0f);
+  /* uint result = rand(coord); */
   uint i = coord.x + (coord.y * get_global_size(0));
-  /* pBuffer[i] = val; */
+  pBuffer[i] = rand(coord);
 }
