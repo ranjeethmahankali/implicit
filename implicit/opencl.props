@@ -11,6 +11,9 @@
       <AdditionalLibraryDirectories>$(SolutionDir)dependencies\lightOCLSDK\lib\x86_64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(SolutionDir)implicit\kernel_sources.h"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
