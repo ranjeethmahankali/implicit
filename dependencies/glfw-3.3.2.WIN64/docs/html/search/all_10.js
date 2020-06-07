@@ -1,6 +1,3 @@
-var searchData=
-[
-  ['vulkan_20reference_520',['Vulkan reference',['../group__vulkan.html',1,'']]],
-  ['vulkan_2edox_521',['vulkan.dox',['../vulkan_8dox.html',1,'']]],
-  ['vulkan_20guide_522',['Vulkan guide',['../vulkan_guide.html',1,'']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:2e5ba9baaeb7693f8312069c549e04c1dc998eafb1a98df903a12d92ed3b1d5a
+size 243

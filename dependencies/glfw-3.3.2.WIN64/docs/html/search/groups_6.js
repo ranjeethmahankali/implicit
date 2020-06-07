@@ -1,6 +1,3 @@
-var searchData=
-[
-  ['mouse_20buttons_769',['Mouse buttons',['../group__buttons.html',1,'']]],
-  ['modifier_20key_20flags_770',['Modifier key flags',['../group__mods.html',1,'']]],
-  ['monitor_20reference_771',['Monitor reference',['../group__monitor.html',1,'']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:6518be1e0573fec18731d4f9d1944f26ea14d20619377bc6e4a2e8c564390f9c
+size 268
