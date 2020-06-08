@@ -33,7 +33,7 @@ static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float>* s_kernel;
 
 static bool log_gl_errors(const char* function, const char* file, uint32_t line)
 {
@@ -124,8 +124,8 @@ static void init_ocl()
         }
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
-        s_program = cl::Program(s_context, cl_kernel_sources::noise, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&>(s_program, "k_add_noise");
+        s_program = cl::Program(s_context, cl_kernel_sources::cube, true);
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float>(s_program, "k_traceCube");
     }
     catch (cl::Error error)
     {
@@ -178,7 +178,7 @@ static void render()
         s_queue.finish();
         if (s_kernel)
         {
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer);
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 3.0f, 0.7f, 0.7f);
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
