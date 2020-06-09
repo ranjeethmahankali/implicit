@@ -33,7 +33,7 @@ static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
 
 static bool log_gl_errors(const char* function, const char* file, uint32_t line)
 {
@@ -125,7 +125,7 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::cube, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float>(s_program, "k_traceCube");
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_traceCube");
     }
     catch (cl::Error error)
     {
@@ -178,7 +178,7 @@ static void render(float ang)
         s_queue.finish();
         if (s_kernel)
         {
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 3.0f, ang, ang);
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 1.0f, ang, ang, { 0.0f, 0.0f, 0.0f });
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
@@ -201,7 +201,7 @@ int main()
     while (!glfwWindowShouldClose(s_window))
     {
         render(ang);
-        ang += 0.05f;
+        ang += 0.01f;
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));
 

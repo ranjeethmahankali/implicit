@@ -81,29 +81,53 @@ uint trace_box(float3 rayPt, float3 rayDir, float3 boxMin, float3 boxMax)
   float d = dot(normalize(norm), normalize(-rayDir));
   float3 dark = (float3)(0.2f, 0.2f, 0.2f);
   float3 lite = (float3)(0.9f, 0.9f, 0.9f);
-  return rbest == FLT_MAX ? colorToInt(dark) : colorToInt(dark * (1.0f - d) + lite * d);
+  return rbest == FLT_MAX ?
+    0xff101010 :
+    colorToInt(dark * (1.0f - d) + lite * d);
+}
+
+void perspective_project(float camDist,
+                         float camTheta,
+                         float camPhi,
+                         float3 camTarget,
+                         uint2 coord,
+                         uint2 dims,
+                         float3* pos,
+                         float3* dir)
+{
+  float st, ct, sp, cp;
+  st = sincos(camTheta, &ct);
+  sp = sincos(camPhi, &cp);
+
+  *dir = -(float3)(camDist * cp * ct, camDist * cp * st, camDist * sp);
+  *pos = camTarget - (*dir);
+  *dir = normalize(*dir);
+
+  /* float3 center = pos - (dir * 0.57735026f); */
+  float3 center = (*pos) - ((*dir) * 1.2f);
+  
+  float3 x = normalize(cross(*dir, (float3)(0, 0, 1)));
+  float3 y = normalize(cross(x, *dir));
+  *pos += 1.5f *
+    (x * (((float)coord.x - (float)dims.x / 2.0f) / (float)(dims.x / 2)) +
+     y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
+
+  *dir = normalize((*pos) - center);
 }
 
 kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
                         float camDist,
                         float camTheta,
-                        float camPhi)
+                        float camPhi,
+                        float3 camTarget)
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
-
-  float st, ct, sp, cp;
-  st = sincos(camTheta, &ct);
-  sp = sincos(camPhi, &cp);
-
-  float3 pos = (float3)(camDist * cp * ct, camDist * cp * st, camDist * sp);
-  float3 dir = normalize(-pos);
-
-  float3 x = normalize(cross(dir, (float3)(0, 0, 1)));
-  float3 y = normalize(cross(x, dir));
-  pos += 3 * (x * (((float)coord.x - (float)dims.x / 2.0f) / (float)(dims.x / 2)) +
-              y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
-  
+  float3 pos, dir;
+  perspective_project(camDist, camTheta, camPhi, camTarget,
+                      coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_box(pos, dir, (float3)(-0.5f, -0.5f, -0.5f), (float3)(0.5f, 0.5f, 0.5f));
+  pBuffer[i] = trace_box(pos, dir,
+                         (float3)(-0.5f, -0.5f, -0.5f),
+                         (float3)(0.5f, 0.5f, 0.5f));
 }
