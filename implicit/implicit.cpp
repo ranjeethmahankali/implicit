@@ -6,7 +6,14 @@
 #include <assert.h>
 #include "kernel_sources.h"
 
-static constexpr uint32_t WIN_W = 640, WIN_H = 480;
+#define __CL_ENABLE_EXCEPTIONS
+//#define __NO_STD_STRING
+#define  _VARIADIC_MAX 10
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#include <CL/cl.hpp>
+
+static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
 static cl::Context s_context;
@@ -131,12 +138,13 @@ static void render()
         s_queue.finish();
         if (s_kernel)
         {
+            glm::vec3 ctarget = camera::target();
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
                 s_pBuffer,
                 camera::distance(),
                 camera::theta(),
                 camera::phi(),
-                camera::target());
+                { ctarget.x, ctarget.y, ctarget.z });
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();

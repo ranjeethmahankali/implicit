@@ -1,5 +1,6 @@
 #include "camera.h"
 #include <iostream>
+static constexpr glm::vec3 unit_z = { 0.0f, 0.0f, 1.0f };
 
 void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
 {
@@ -7,6 +8,25 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
     {
         s_camTheta -= (float)(xpos - s_mousePos[0]) * ORBIT_ANG;
         s_camPhi += (float)(ypos - s_mousePos[1]) * ORBIT_ANG;
+        s_mousePos[0] = xpos;
+        s_mousePos[1] = ypos;
+    }
+
+    if (s_leftDown)
+    {
+        float
+            st = std::sinf(s_camTheta), ct = std::cosf(s_camTheta),
+            sp = std::sinf(s_camPhi), cp = std::cosf(s_camPhi);
+        glm::vec3 dir = { s_camDist * cp * ct, s_camDist * cp * st, s_camDist * sp };
+        glm::vec3 pos = s_camTarget + dir;
+        dir = glm::normalize(-dir);
+        
+        glm::vec3 x = glm::normalize(glm::cross(dir, unit_z));
+        glm::vec3 y = glm::normalize(glm::cross(x, dir));
+        glm::vec2 diff = { (float)(s_mousePos[0] - xpos), (float)(ypos - s_mousePos[1]) };
+        diff /= 20.0f;
+        s_camTarget += x * diff.x + y * diff.y;
+
         s_mousePos[0] = xpos;
         s_mousePos[1] = ypos;
     }
@@ -56,7 +76,7 @@ float camera::phi()
     return s_camPhi;
 }
 
-cl_float3 camera::target()
+glm::vec3 camera::target()
 {
     return s_camTarget;
 }
