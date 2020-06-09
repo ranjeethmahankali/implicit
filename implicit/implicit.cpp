@@ -1,29 +1,10 @@
-#include <iostream>
 #include <vector>
 #include <algorithm>
+#include <iostream>
+#include "camera.h"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <assert.h>
-
-#define __CL_ENABLE_EXCEPTIONS
-//#define __NO_STD_STRING
-#define  _VARIADIC_MAX 10
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
-#include <CL/cl.hpp>
-
 #include "kernel_sources.h"
-
-#ifdef _DEBUG
-#define GL_CALL(fncall) {\
-clear_gl_errors();\
-fncall;\
-if (log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
-}
-#else
-#define GL_CALL(fncall) fncall
-#endif // DEBUG
 
 static constexpr uint32_t WIN_W = 640, WIN_H = 480;
 static GLFWwindow* s_window;
@@ -34,39 +15,6 @@ static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
 static cl::Program s_program;
 static cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
-
-static bool log_gl_errors(const char* function, const char* file, uint32_t line)
-{
-    static bool found_error = false;
-    while (GLenum error = glGetError())
-    {
-        std::cout << "[OpenGL Error] (0x" << std::hex << error << std::dec << ")";
-#if _DEBUG
-        std::cout << " in " << function << " at " << file << ":" << line;
-#endif // NDEBUG
-        std::cout << std::endl;
-        found_error = true;
-    }
-    if (found_error)
-    {
-        found_error = false;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-static void clear_gl_errors()
-{
-    // Just loop over and consume all pending errors.
-    GLenum error = glGetError();
-    while (error)
-    {
-        error = glGetError();
-    }
-}
 
 static void init_ogl()
 {
@@ -101,6 +49,11 @@ static void init_ogl()
     }
 
     std::cout << "Using OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
+
+    // Register mouse event handlers.
+    GL_CALL(glfwSetCursorPosCallback(s_window, camera::on_mouse_move));
+    GL_CALL(glfwSetMouseButtonCallback(s_window, camera::on_mouse_button));
+    GL_CALL(glfwSetScrollCallback(s_window, camera::on_mouse_scroll));
 }
 
 static void init_ocl()
@@ -168,7 +121,7 @@ static void init_pbo()
     }
 }
 
-static void render(float ang)
+static void render()
 {
     try
     {
@@ -178,7 +131,12 @@ static void render(float ang)
         s_queue.finish();
         if (s_kernel)
         {
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 1.0f, ang, ang, { 0.0f, 0.0f, 0.0f });
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
+                s_pBuffer,
+                camera::distance(),
+                camera::theta(),
+                camera::phi(),
+                camera::target());
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
@@ -196,12 +154,10 @@ int main()
     init_ogl();
     init_ocl();
     init_pbo();
-    float ang = 0.0f;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
-        render(ang);
-        ang += 0.01f;
+        render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));
 
