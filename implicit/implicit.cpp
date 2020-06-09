@@ -140,16 +140,16 @@ static void init_pbo()
     if (s_pboId)
     {
         GL_CALL(clReleaseMemObject(s_pBuffer()));
-        GL_CALL(glDeleteBuffersARB(1, &s_pboId));
+        GL_CALL(glDeleteBuffers(1, &s_pboId));
     }
 
     std::vector<uint32_t> temp(WIN_W * WIN_H);
     std::generate(temp.begin(), temp.end(), []() { return (uint32_t)std::rand(); });
 
-    GL_CALL(glGenBuffersARB(1, &s_pboId));
-    GL_CALL(glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, s_pboId));
-    GL_CALL(glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, WIN_W * WIN_H * sizeof(uint32_t), temp.data(), GL_STREAM_DRAW_ARB));
-    GL_CALL(glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0));
+    GL_CALL(glGenBuffers(1, &s_pboId));
+    GL_CALL(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, s_pboId));
+    GL_CALL(glBufferData(GL_PIXEL_UNPACK_BUFFER, WIN_W * WIN_H * sizeof(uint32_t), temp.data(), GL_STREAM_DRAW));
+    GL_CALL(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0));
 
     try
     {
@@ -168,7 +168,7 @@ static void init_pbo()
     }
 }
 
-static void render()
+static void render(float ang)
 {
     try
     {
@@ -178,7 +178,7 @@ static void render()
         s_queue.finish();
         if (s_kernel)
         {
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 3.0f, 0.7f, 0.7f);
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)), s_pBuffer, 3.0f, ang, ang);
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
@@ -196,23 +196,25 @@ int main()
     init_ogl();
     init_ocl();
     init_pbo();
+    float ang = 0.0f;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
-        render();
-        glClear(GL_COLOR_BUFFER_BIT);
-        glDisable(GL_DEPTH_TEST);
+        render(ang);
+        ang += 0.05f;
+        GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
+        GL_CALL(glDisable(GL_DEPTH_TEST));
 
-        glRasterPos2i(-1, -1);
-        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, s_pboId);
-        glDrawPixels(WIN_W, WIN_H, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+        GL_CALL(glRasterPos2i(-1, -1));
+        GL_CALL(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, s_pboId));
+        GL_CALL(glDrawPixels(WIN_W, WIN_H, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        GL_CALL(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0));
 
         /* Swap front and back buffers */
-        glfwSwapBuffers(s_window);
+        GL_CALL(glfwSwapBuffers(s_window));
 
         /* Poll for and process events */
-        glfwPollEvents();
+        GL_CALL(glfwPollEvents());
     }
 
     glfwTerminate();

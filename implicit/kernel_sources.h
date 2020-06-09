@@ -12,7 +12,7 @@ uint colorToInt(float3 rgb)
 uint trace_box(float3 rayPt, float3 rayDir, float3 boxMin, float3 boxMax)
 {
   float rbest = FLT_MAX;
-  float3 norm;
+  float3 norm = (float3)(0, 0, 0);
   if (rayPt.x < boxMin.x){
     float r = (boxMin.x - rayPt.x) / rayDir.x;
     float3 p = rayPt + (rayDir * r);
@@ -76,7 +76,7 @@ uint trace_box(float3 rayPt, float3 rayDir, float3 boxMin, float3 boxMax)
   float d = dot(normalize(norm), normalize(-rayDir));
   float3 dark = (float3)(0.2f, 0.2f, 0.2f);
   float3 lite = (float3)(0.9f, 0.9f, 0.9f);
-  return colorToInt(dark * (1.0f - d) + lite * d);
+  return rbest == FLT_MAX ? colorToInt(dark) : colorToInt(dark * (1.0f - d) + lite * d);
 }
 kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
                         float camDist,
@@ -96,7 +96,7 @@ kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
               y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
   
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_box(pos, dir, (float3)(0, 0, 0), (float3)(1, 1, 1));
+  pBuffer[i] = trace_box(pos, dir, (float3)(-0.5f, -0.5f, -0.5f), (float3)(0.5f, 0.5f, 0.5f));
 }
 	)";
 
