@@ -104,7 +104,7 @@ void perspective_project(float camDist,
   *dir = normalize(*dir);
 
   /* float3 center = pos - (dir * 0.57735026f); */
-  float3 center = (*pos) - ((*dir) * 1.2f);
+  float3 center = (*pos) - ((*dir) * 2.0f);
   
   float3 x = normalize(cross(*dir, (float3)(0, 0, 1)));
   float3 y = normalize(cross(x, *dir));
