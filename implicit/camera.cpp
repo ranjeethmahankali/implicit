@@ -1,6 +1,8 @@
 #include "camera.h"
 #include <iostream>
+#include <algorithm>
 static constexpr glm::vec3 unit_z = { 0.0f, 0.0f, 1.0f };
+static constexpr float MAX_PHI = 1.5607963267948965f;
 
 void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
 {
@@ -8,6 +10,7 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
     {
         s_camTheta -= (float)(xpos - s_mousePos[0]) * ORBIT_ANG;
         s_camPhi += (float)(ypos - s_mousePos[1]) * ORBIT_ANG;
+        s_camPhi = std::min(MAX_PHI, std::max(-MAX_PHI, s_camPhi));
         s_mousePos[0] = xpos;
         s_mousePos[1] = ypos;
     }
