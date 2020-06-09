@@ -20,7 +20,7 @@ if (log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
 
 static bool s_leftDown = false;
 static bool s_rightDown = false;
-static float s_camDist = 1.0f;
+static float s_camDist = 10.0f;
 static float s_camTheta = 0.6f;
 static float s_camPhi = 0.77f;
 static cl_float3 s_camTarget = { 0.0f, 0.0f, 0.0f };

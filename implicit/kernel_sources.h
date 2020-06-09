@@ -118,8 +118,8 @@ kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
   pBuffer[i] = trace_box(pos, dir,
-                         (float3)(-0.5f, -0.5f, -0.5f),
-                         (float3)(0.5f, 0.5f, 0.5f));
+                         (float3)(-5.0f, -5.0f, -5.0f),
+                         (float3)(5.0f, 5.0f, 5.0f));
 }
 	)";
 
