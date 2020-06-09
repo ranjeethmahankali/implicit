@@ -10,7 +10,7 @@ if (log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
 }
 #else
 #define GL_CALL(fncall) fncall
-#endif // DEBUG
+#endif
 
 static constexpr float CAM_DIST = 10.0f;
 static constexpr float CAM_THETA = 0.6f;
