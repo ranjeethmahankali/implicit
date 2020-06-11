@@ -1,5 +1,34 @@
 #define DX 0.0001f
 
+#define GRADIENT(func, pt, norm){                    \
+    float v0 = func;                                 \
+    pt.x += DX; float vx = func; pt.x -= DX;         \
+    pt.y += DX; float vy = func; pt.y -= DX;         \
+    pt.z += DX; float vz = func; pt.z -= DX;         \
+    norm = (float3)((vx - v0) / DX,                  \
+                    (vy - v0) / DX,                  \
+                    (vz - v0) / DX);                 \
+}
+
+#define SPHERE_TRACE(func, pt, dir, norm, found, iters, tolerance){ \
+    dir = normalize(dir);                                           \
+    float3 norm = (float3)(0.0f, 0.0f, 0.0f);                       \
+    bool found = false;                                             \
+    for (int i = 0; i < iters; i++){                                \
+      float d = func;                                               \
+      if (d < 0.0f) break;                                              \
+      if (d < tolerance){                                               \
+        GRADIENT(func, pt, norm);                                       \
+        found = true;                                                   \
+        break;                                                          \
+      }                                                                 \
+      pt += dir * d;                                                    \
+    }                                                                   \
+    float d = dot(normalize(norm), -dir);                               \
+    float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d; \
+    return found ? colorToInt(color) : 0xff101010;                      \
+  }
+
 uint colorToInt(float3 rgb)
 {
   uint color = 0xff000000;
@@ -128,40 +157,27 @@ float f_box(float3* bmin, float3* bmax, float3* pt)
   return val;
 }
 
-float3 g_box(float3* bmin, float3* bmax, float3* pt)
+float f_capsule(float3* a, float3* b, float thick, float3* pt)
 {
-  float v0 = f_box(bmin, bmax, pt);
-  float3 px = *pt + (float3)(DX  , 0.0f, 0.0f);
-  float3 py = *pt + (float3)(0.0f, DX  , 0.0f);
-  float3 pz = *pt + (float3)(0.0f, 0.0f, DX  );
-  return (float3)((f_box(bmin, bmax, &px) - v0) / DX,
-                  (f_box(bmin, bmax, &py) - v0) / DX,
-                  (f_box(bmin, bmax, &pz) - v0) / DX);
+  float3 ln = *b - *a;
+  float r = min(1.0f, max(0.0f, dot(ln, *pt - *a) / dot(ln, ln)));
+  return length((*a + ln * r) - *pt) - thick;
 }
 
-uint trace_box_sphere(float3 pt, float3 dir, float3 bmin, float3 bmax)
+float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
 {
-  dir = normalize(dir);
-  float3 norm = (float3)(0, 0, 0);
-  bool found = false;
-  for (int i = 0; i < 50; i++){
-    float d = f_box(&bmin, &bmax, &pt);
-    if (d < 0.0f){
-      break;
-    }
-    if (d < 0.01f){
-      norm = g_box(&bmin, &bmax, &pt);
-      found = true;
-      break;
-    }
-    pt += dir * d;
-  }
+  float a = length(((*bmin + *bmax) * 0.5f) - *pt) - radius;
+  float b = f_capsule(bmin, bmax, radius * 0.5f, pt);
+  return min(a, b);
+}
 
-  float d = dot(normalize(norm), -dir);
-  return found ?
-    colorToInt((float3)(0.2f, 0.2f, 0.2f) * (1.0f - d) +
-               (float3)(0.9f, 0.9f, 0.9f) * d) :
-    0xff101010;
+uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
+{
+  SPHERE_TRACE(
+               /* f_box(&bmin, &bmax, &pt), */
+               /* f_capsule(&bmin, &bmax, 3, &pt), */
+               f_testUnion(&bmin, &bmax, 2.0f, &pt),
+               pt, dir, norm, found, 100, 0.01f);
 }
 
 kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
@@ -179,7 +195,7 @@ kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
   /* pBuffer[i] = trace_box(pos, dir, */
   /*                        (float3)(-5.0f, -5.0f, -5.0f), */
   /*                        (float3)(5.0f, 5.0f, 5.0f)); */
-  pBuffer[i] = trace_box_sphere(pos, dir,
-                                (float3)(-5.0f, -5.0f, -5.0f),
-                                (float3)(5.0f, 5.0f, 5.0f));
+  pBuffer[i] = trace_any(pos, dir,
+                         (float3)(-5.0f, -5.0f, 0.0f),
+                         (float3)(5.0f, 5.0f, 0.0f));
 }
