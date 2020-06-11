@@ -164,6 +164,17 @@ float f_capsule(float3* a, float3* b, float thick, float3* pt)
   return length((*a + ln * r) - *pt) - thick;
 }
 
+float f_gyroid(float3* bmin, float3* bmax, float3* pt)
+{
+  float sx, cx, sy, cy, sz, cz;
+  sx = sincos((*pt).x * 2.0f, &cx);
+  sy = sincos((*pt).y * 2.0f, &cy);
+  sz = sincos((*pt).z * 2.0f, &cz);
+  /* return (sx * cy + sy * cz + sz * cx) / 10.0f; */
+  return max(length(*pt) - 5.0f,
+             (fabs(sx * cy + sy * cz + sz * cx) - 0.2f) / 10.0f);
+}
+
 float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
 {
   float a = length(((*bmin + *bmax) * 0.5f) - *pt) - radius;
@@ -176,8 +187,9 @@ uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
   SPHERE_TRACE(
                /* f_box(&bmin, &bmax, &pt), */
                /* f_capsule(&bmin, &bmax, 3, &pt), */
-               f_testUnion(&bmin, &bmax, 2.0f, &pt),
-               pt, dir, norm, found, 100, 0.01f);
+               /* f_testUnion(&bmin, &bmax, 2.0f, &pt), */
+               f_gyroid(&bmin, &bmax, &pt),
+               pt, dir, norm, found, 500, 0.00001f);
 }
 
 kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
@@ -196,6 +208,6 @@ kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
   /*                        (float3)(-5.0f, -5.0f, -5.0f), */
   /*                        (float3)(5.0f, 5.0f, 5.0f)); */
   pBuffer[i] = trace_any(pos, dir,
-                         (float3)(-5.0f, -5.0f, 0.0f),
-                         (float3)(5.0f, 5.0f, 0.0f));
+                         (float3)(-5.0f, -5.0f, -5.0f),
+                         (float3)(5.0f, 5.0f, 5.0f));
 }
