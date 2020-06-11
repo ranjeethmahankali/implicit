@@ -90,10 +90,12 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gl_util.cpp" />
     <ClCompile Include="implicit.cpp" />
     <ClCompile Include="camera.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gl_util.h" />
     <ClInclude Include="kernel_sources.h" />
     <ClInclude Include="camera.h" />
   </ItemGroup>
