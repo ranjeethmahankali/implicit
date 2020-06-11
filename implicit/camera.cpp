@@ -11,8 +11,7 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
         s_camTheta -= (float)(xpos - s_mousePos[0]) * ORBIT_ANG;
         s_camPhi += (float)(ypos - s_mousePos[1]) * ORBIT_ANG;
         s_camPhi = std::min(MAX_PHI, std::max(-MAX_PHI, s_camPhi));
-        s_mousePos[0] = xpos;
-        s_mousePos[1] = ypos;
+        capture_mouse_pos(xpos, ypos);
     }
 
     if (s_leftDown)
@@ -30,8 +29,7 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
         diff /= 20.0f;
         s_camTarget += x * diff.x + y * diff.y;
 
-        s_mousePos[0] = xpos;
-        s_mousePos[1] = ypos;
+        capture_mouse_pos(xpos, ypos);
     }
 }
 
@@ -53,7 +51,7 @@ void camera::on_mouse_button(GLFWwindow* window, int button, int action, int mod
             s_leftDown = false;
     }
 
-    GL_CALL(glfwGetCursorPos(window, &s_mousePos[0], &s_mousePos[1]));
+    GL_CALL(glfwGetCursorPos(window, &s_mousePos.x, &s_mousePos.y));
 }
 
 void camera::on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset)
@@ -62,6 +60,12 @@ void camera::on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset)
     static constexpr float zoomDown = 1.0f / zoomUp;
 
     s_camDist *= yOffset > 0 ? zoomDown : zoomUp;
+}
+
+void camera::capture_mouse_pos(double xpos, double ypos)
+{
+    s_mousePos.x = xpos;
+    s_mousePos.y = ypos;
 }
 
 float camera::distance()

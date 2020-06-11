@@ -13,7 +13,7 @@ static float s_camDist = CAM_DIST;
 static float s_camTheta = CAM_THETA;
 static float s_camPhi = CAM_PHI;
 static glm::vec3 s_camTarget = CAM_TARGET;
-static double s_mousePos[2] = { 0.0, 0.0 };
+static glm::dvec2 s_mousePos = { 0.0, 0.0 };
 
 namespace camera
 {
@@ -26,4 +26,5 @@ namespace camera
     void on_mouse_move(GLFWwindow* window, double xpos, double ypos);
     void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
     void on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset);
+    static void capture_mouse_pos(double xpos, double ypos);
 }

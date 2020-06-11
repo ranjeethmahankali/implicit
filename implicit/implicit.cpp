@@ -13,6 +13,12 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.hpp>
 
+#define CATCH_EXIT_CL_ERR catch (cl::Error err)\
+{\
+std::cerr << "OpenCL Error: " << cl_err_str(err.err()) << std::endl;\
+exit(err.err());\
+}
+
 static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
@@ -63,6 +69,81 @@ static void init_ogl()
     GL_CALL(glfwSetScrollCallback(s_window, camera::on_mouse_scroll));
 }
 
+static const char* cl_err_str(cl_int err)
+{
+#define CASE_RET(val) case val: return #val
+    switch (err)
+    {
+    CASE_RET(CL_SUCCESS);
+    CASE_RET(CL_DEVICE_NOT_FOUND);
+    CASE_RET(CL_DEVICE_NOT_AVAILABLE);
+    CASE_RET(CL_COMPILER_NOT_AVAILABLE);
+    CASE_RET(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    CASE_RET(CL_OUT_OF_RESOURCES);
+    CASE_RET(CL_OUT_OF_HOST_MEMORY);
+    CASE_RET(CL_PROFILING_INFO_NOT_AVAILABLE);
+    CASE_RET(CL_MEM_COPY_OVERLAP);
+    CASE_RET(CL_IMAGE_FORMAT_MISMATCH);
+    CASE_RET(CL_IMAGE_FORMAT_NOT_SUPPORTED);
+    CASE_RET(CL_BUILD_PROGRAM_FAILURE);
+    CASE_RET(CL_MAP_FAILURE);
+    CASE_RET(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    CASE_RET(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    CASE_RET(CL_COMPILE_PROGRAM_FAILURE);
+    CASE_RET(CL_LINKER_NOT_AVAILABLE);
+    CASE_RET(CL_LINK_PROGRAM_FAILURE);
+    CASE_RET(CL_DEVICE_PARTITION_FAILED);
+    CASE_RET(CL_KERNEL_ARG_INFO_NOT_AVAILABLE);
+
+    // compile-time errors
+    CASE_RET(CL_INVALID_VALUE);
+    CASE_RET(CL_INVALID_DEVICE_TYPE);
+    CASE_RET(CL_INVALID_PLATFORM);
+    CASE_RET(CL_INVALID_DEVICE);
+    CASE_RET(CL_INVALID_CONTEXT);
+    CASE_RET(CL_INVALID_QUEUE_PROPERTIES);
+    CASE_RET(CL_INVALID_COMMAND_QUEUE);
+    CASE_RET(CL_INVALID_HOST_PTR);
+    CASE_RET(CL_INVALID_MEM_OBJECT);
+    CASE_RET(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    CASE_RET(CL_INVALID_IMAGE_SIZE);
+    CASE_RET(CL_INVALID_SAMPLER);
+    CASE_RET(CL_INVALID_BINARY);
+    CASE_RET(CL_INVALID_BUILD_OPTIONS);
+    CASE_RET(CL_INVALID_PROGRAM);
+    CASE_RET(CL_INVALID_PROGRAM_EXECUTABLE);
+    CASE_RET(CL_INVALID_KERNEL_NAME);
+    CASE_RET(CL_INVALID_KERNEL_DEFINITION);
+    CASE_RET(CL_INVALID_KERNEL);
+    CASE_RET(CL_INVALID_ARG_INDEX);
+    CASE_RET(CL_INVALID_ARG_VALUE);
+    CASE_RET(CL_INVALID_ARG_SIZE);
+    CASE_RET(CL_INVALID_KERNEL_ARGS);
+    CASE_RET(CL_INVALID_WORK_DIMENSION);
+    CASE_RET(CL_INVALID_WORK_GROUP_SIZE);
+    CASE_RET(CL_INVALID_WORK_ITEM_SIZE);
+    CASE_RET(CL_INVALID_GLOBAL_OFFSET);
+    CASE_RET(CL_INVALID_EVENT_WAIT_LIST);
+    CASE_RET(CL_INVALID_EVENT);
+    CASE_RET(CL_INVALID_OPERATION);
+    CASE_RET(CL_INVALID_GL_OBJECT);
+    CASE_RET(CL_INVALID_BUFFER_SIZE);
+    CASE_RET(CL_INVALID_MIP_LEVEL);
+    CASE_RET(CL_INVALID_GLOBAL_WORK_SIZE);
+    CASE_RET(CL_INVALID_PROPERTY);
+    CASE_RET(CL_INVALID_IMAGE_DESCRIPTOR);
+    CASE_RET(CL_INVALID_COMPILER_OPTIONS);
+    CASE_RET(CL_INVALID_LINKER_OPTIONS);
+    CASE_RET(CL_INVALID_DEVICE_PARTITION_COUNT);
+
+    // extension errors
+    CASE_RET(CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR);
+    CASE_RET(CL_PLATFORM_NOT_FOUND_KHR);
+    default: return "Unknown OpenCL error";
+    }
+#undef CASE_RET
+};
+
 static void init_ocl()
 {
     try
@@ -87,11 +168,7 @@ static void init_ocl()
         s_program = cl::Program(s_context, cl_kernel_sources::cube, true);
         s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_traceCube");
     }
-    catch (cl::Error error)
-    {
-        std::cerr << "OpenCL Error" << std::endl;
-        exit(1);
-    }
+    CATCH_EXIT_CL_ERR;
 };
 
 static void init_pbo()
@@ -121,11 +198,7 @@ static void init_pbo()
             exit(1);
         }
     }
-    catch (cl::Error error)
-    {
-        std::cerr << "OpenCL Error" << std::endl;
-        exit(1);
-    }
+    CATCH_EXIT_CL_ERR;
 }
 
 static void render()
@@ -150,11 +223,7 @@ static void render()
         s_queue.flush();
         s_queue.finish();
     }
-    catch (cl::Error error)
-    {
-        std::cerr << "Open CL error" << std::endl;
-        exit(1);
-    }
+    CATCH_EXIT_CL_ERR;
 }
 
 int main()
