@@ -1,5 +1,8 @@
 #define DX 0.0001f
+#define BOUND 10.0f
 
+/*Macro to numerically compute the gradient vector of a given
+implicit function.*/
 #define GRADIENT(func, pt, norm){                    \
     float v0 = func;                                 \
     pt.x += DX; float vx = func; pt.x -= DX;         \
@@ -10,6 +13,8 @@
                     (vz - v0) / DX);                 \
 }
 
+/*Macro to perform sphere tracing for a given implicit function that
+terminates based on the given tolerance or max-iterations.*/
 #define SPHERE_TRACE(func, pt, dir, norm, found, iters, tolerance){ \
     dir = normalize(dir);                                           \
     float3 norm = (float3)(0.0f, 0.0f, 0.0f);                       \
@@ -23,11 +28,15 @@
         break;                                                          \
       }                                                                 \
       pt += dir * d;                                                    \
+      if (fabs(pt.x) > BOUND ||                                         \
+          fabs(pt.y) > BOUND ||                                         \
+          fabs(pt.z) > BOUND) break;                                    \
     }                                                                   \
     float d = dot(normalize(norm), -dir);                               \
     float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d; \
     return found ? colorToInt(color) : 0xff101010;                      \
-  }
+}
+
 
 uint colorToInt(float3 rgb)
 {
@@ -36,84 +45,6 @@ uint colorToInt(float3 rgb)
   color |= ((uint)(rgb.y * 255)) << 8;
   color |= ((uint)(rgb.z * 255)) << 16;
   return color;
-}
-
-uint trace_box(float3 rayPt, float3 rayDir, float3 boxMin, float3 boxMax)
-{
-  float rbest = FLT_MAX;
-  float3 norm = (float3)(0, 0, 0);
-  if (rayPt.x < boxMin.x){
-    float r = (boxMin.x - rayPt.x) / rayDir.x;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.y > boxMin.y && p.y < boxMax.y && p.z > boxMin.z && p.z < boxMax.z &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(-1.0f, 0.0f, 0.0f);
-    }
-  }
-
-  if (rayPt.x > boxMax.x){
-    float r = (boxMax.x - rayPt.x) / rayDir.x;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.y > boxMin.y && p.y < boxMax.y && p.z > boxMin.z && p.z < boxMax.z &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(1.0f, 0.0f, 0.0f);
-    }
-  }
-
-  if (rayPt.y < boxMin.y){
-    float r = (boxMin.y - rayPt.y) / rayDir.y;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.x > boxMin.x && p.x < boxMax.x && p.z > boxMin.z && p.z < boxMax.z &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(0.0f, -1.0f, 0.0f);
-    }
-  }
-
-  if (rayPt.y > boxMax.y){
-    float r = (boxMax.y - rayPt.y) / rayDir.y;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.x > boxMin.x && p.x < boxMax.x && p.z > boxMin.z && p.z < boxMax.z &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(0.0f, 1.0f, 0.0f);
-    }
-  }
-
-  if (rayPt.z < boxMin.z){
-    float r = (boxMin.z - rayPt.z) / rayDir.z;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.x > boxMin.x && p.x < boxMax.x && p.y > boxMin.y && p.y < boxMax.y &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(0.0f, 0.0f, -1.0f);
-    }
-  }
-
-  if (rayPt.z > boxMax.z){
-    float r = (boxMax.z - rayPt.z) / rayDir.z;
-    float3 p = rayPt + (rayDir * r);
-    if (r > 0 &&
-        p.x > boxMin.x && p.x < boxMax.x && p.y > boxMin.y && p.y < boxMax.y &&
-        r < rbest){
-      rbest = r;
-      norm = (float3)(0.0f, 0.0f, 1.0f);
-    }
-  }
-
-  float d = dot(normalize(norm), normalize(-rayDir));
-  float3 dark = (float3)(0.2f, 0.2f, 0.2f);
-  float3 lite = (float3)(0.9f, 0.9f, 0.9f);
-  return rbest == FLT_MAX ?
-    0xff101010 :
-    colorToInt(dark * (1.0f - d) + lite * d);
 }
 
 void perspective_project(float camDist,
@@ -164,13 +95,12 @@ float f_capsule(float3* a, float3* b, float thick, float3* pt)
   return length((*a + ln * r) - *pt) - thick;
 }
 
-float f_gyroid(float3* bmin, float3* bmax, float3* pt)
+float f_gyroid(float3* bmin, float3* bmax, float scale, float3* pt)
 {
   float sx, cx, sy, cy, sz, cz;
-  sx = sincos((*pt).x * 2.0f, &cx);
-  sy = sincos((*pt).y * 2.0f, &cy);
-  sz = sincos((*pt).z * 2.0f, &cz);
-  /* return (sx * cy + sy * cz + sz * cx) / 10.0f; */
+  sx = sincos((*pt).x * scale, &cx);
+  sy = sincos((*pt).y * scale, &cy);
+  sz = sincos((*pt).z * scale, &cz);
   return max(length(*pt) - 5.0f,
              (fabs(sx * cy + sy * cz + sz * cx) - 0.2f) / 10.0f);
 }
@@ -188,7 +118,7 @@ uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
                /* f_box(&bmin, &bmax, &pt), */
                /* f_capsule(&bmin, &bmax, 3, &pt), */
                /* f_testUnion(&bmin, &bmax, 2.0f, &pt), */
-               f_gyroid(&bmin, &bmax, &pt),
+               f_gyroid(&bmin, &bmax, 2.0f, &pt),
                pt, dir, norm, found, 500, 0.00001f);
 }
 
