@@ -35,5 +35,8 @@
     <ClInclude Include="gl_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="host_primitives.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

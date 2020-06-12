@@ -2,7 +2,89 @@ namespace cl_kernel_sources
 {
 	constexpr char render[] = R"(
 #define DX 0.0001f
-#define BOUND 10.0f
+#define BOUND 20.0f
+#define UINT32_TYPE uint
+#define FLT_TYPE float
+#define UINT8_TYPE uchar
+#define PACKED// __attribute__((packed))
+#define ENT_TYPE_BOX 1
+struct i_box
+{
+  FLT_TYPE bounds[6];
+} PACKED;
+#define ENT_TYPE_SPHERE 2
+struct i_sphere
+{
+  FLT_TYPE center[3];
+  FLT_TYPE radius;
+} PACKED;
+#define ENT_TYPE_GYROID 3
+struct i_gyroid
+{
+  FLT_TYPE scale;
+  FLT_TYPE thickness;
+} PACKED;
+#define ENT_TYPE_BOOLEAN_UNION 4
+struct i_boolean_union
+{
+  UINT32_TYPE index_a;
+  UINT32_TYPE index_b;
+} PACKED;
+union i_entity
+{
+  struct i_box box;
+  struct i_sphere sphere;
+  struct i_gyroid gyroid;
+  struct i_boolean_union boolean_union;
+};
+struct wrapper
+{
+  UINT8_TYPE type;
+  union i_entity entity;
+} PACKED;
+#undef UINT32_TYPE
+#undef FLT_TYPE
+#undef UINT8_TYPE
+#define OFFSET(src, target, dtype, var) (target*)(src + (uint)(&(((dtype*)0)->var)))
+float f_box(global uchar* eptr, float3* pt)
+{
+  global float* bounds = OFFSET(eptr, global float, struct i_box, bounds);
+  float val = -FLT_MAX;
+  val = max(val, (*pt).x - bounds[3]);
+  val = max(val, bounds[0] - (*pt).x);
+  val = max(val, (*pt).y - bounds[4]);
+  val = max(val, bounds[1] - (*pt).y);
+  val = max(val, (*pt).z - bounds[5]);
+  val = max(val, bounds[2] - (*pt).z);
+  return val;
+}
+float f_gyroid(global uchar* eptr, float3* pt)
+{
+  float scale = *(OFFSET(eptr, global float, struct i_gyroid, scale));
+  float thick = *(OFFSET(eptr, global float, struct i_gyroid, thickness));
+  float sx, cx, sy, cy, sz, cz;
+  sx = sincos((*pt).x * scale, &cx);
+  sy = sincos((*pt).y * scale, &cy);
+  sz = sincos((*pt).z * scale, &cz);
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
+}
+float f_sphere(global uchar* eptr, float3* pt)
+{
+  global float* center = OFFSET(eptr, global float, struct i_sphere, center);
+  float radius = *(OFFSET(eptr, global float, struct i_sphere, radius));
+  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+}
+float f_entity(global uchar* wrapper, float3* pt)
+{
+  uchar type = *(OFFSET(wrapper, global uchar, struct wrapper, type));
+  global uchar* ent = OFFSET(wrapper, global uchar, struct wrapper, entity);
+  switch (type){
+  case ENT_TYPE_BOX: return f_box(ent, pt);
+  case ENT_TYPE_SPHERE: return f_sphere(ent, pt);
+  case ENT_TYPE_GYROID: return f_gyroid(ent, pt);
+  default: return 1;
+  }
+}
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
 #define GRADIENT(func, pt, norm){                    \
@@ -14,29 +96,6 @@ implicit function.*/
                     (vy - v0) / DX,                  \
                     (vz - v0) / DX);                 \
 }
-/*Macro to perform sphere tracing for a given implicit function that
-terminates based on the given tolerance or max-iterations.*/
-#define SPHERE_TRACE(func, pt, dir, norm, found, iters, tolerance){ \
-    dir = normalize(dir);                                           \
-    float3 norm = (float3)(0.0f, 0.0f, 0.0f);                       \
-    bool found = false;                                             \
-    for (int i = 0; i < iters; i++){                                \
-      float d = func;                                               \
-      if (d < 0.0f) break;                                              \
-      if (d < tolerance){                                               \
-        GRADIENT(func, pt, norm);                                       \
-        found = true;                                                   \
-        break;                                                          \
-      }                                                                 \
-      pt += dir * d;                                                    \
-      if (fabs(pt.x) > BOUND ||                                         \
-          fabs(pt.y) > BOUND ||                                         \
-          fabs(pt.z) > BOUND) break;                                    \
-    }                                                                   \
-    float d = dot(normalize(norm), -dir);                               \
-    float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d; \
-    return found ? colorToInt(color) : 0xff101010;                      \
-}
 uint colorToInt(float3 rgb)
 {
   uint color = 0xff000000;
@@ -44,6 +103,34 @@ uint colorToInt(float3 rgb)
   color |= ((uint)(rgb.y * 255)) << 8;
   color |= ((uint)(rgb.z * 255)) << 16;
   return color;
+}
+/*Perform sphere tracing for a given implicit function that
+terminates based on the given tolerance or max-iterations.*/
+uint sphere_trace(global uchar* entity,
+                  float3 pt,
+                  float3 dir,
+                  int iters,
+                  float tolerance)
+{
+  dir = normalize(dir);
+  float3 norm = (float3)(0.0f, 0.0f, 0.0f);
+  bool found = false;
+  for (int i = 0; i < iters; i++){
+    float d = f_entity(entity, &pt);
+    if (d < 0.0f) break;
+    if (d < tolerance){
+      GRADIENT(f_entity(entity, &pt), pt, norm);
+      found = true;
+      break;
+    }
+    pt += dir * d;
+    if (i > 5 && (fabs(pt.x) > BOUND ||
+                  fabs(pt.y) > BOUND ||
+                  fabs(pt.z) > BOUND)) break;
+  }
+  float d = dot(normalize(norm), -dir);
+  float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d;
+  return found ? colorToInt(color) : 0xff101010;
 }
 void perspective_project(float camDist,
                          float camTheta,
@@ -70,31 +157,11 @@ void perspective_project(float camDist,
      y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
   *dir = normalize((*pos) - center);
 }
-float f_box(float3* bmin, float3* bmax, float3* pt)
-{
-  float val = -FLT_MAX;
-  val = max(val, (*pt).x - (*bmax).x);
-  val = max(val, (*bmin).x - (*pt).x);
-  val = max(val, (*pt).y - (*bmax).y);
-  val = max(val, (*bmin).y - (*pt).y);
-  val = max(val, (*pt).z - (*bmax).z);
-  val = max(val, (*bmin).z - (*pt).z);
-  return val;
-}
 float f_capsule(float3* a, float3* b, float thick, float3* pt)
 {
   float3 ln = *b - *a;
   float r = min(1.0f, max(0.0f, dot(ln, *pt - *a) / dot(ln, ln)));
   return length((*a + ln * r) - *pt) - thick;
-}
-float f_gyroid(float3* bmin, float3* bmax, float scale, float3* pt)
-{
-  float sx, cx, sy, cy, sz, cz;
-  sx = sincos((*pt).x * scale, &cx);
-  sy = sincos((*pt).y * scale, &cy);
-  sz = sincos((*pt).z * scale, &cz);
-  return max(length(*pt) - 5.0f,
-             (fabs(sx * cy + sy * cz + sz * cx) - 0.2f) / 10.0f);
 }
 float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
 {
@@ -102,20 +169,18 @@ float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
   float b = f_capsule(bmin, bmax, radius * 0.5f, pt);
   return min(a, b);
 }
-uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
+uint trace_any(float3 pt, float3 dir, global uchar* entity)
 {
-  SPHERE_TRACE(
-               /* f_box(&bmin, &bmax, &pt), */
-               /* f_capsule(&bmin, &bmax, 3, &pt), */
-               /* f_testUnion(&bmin, &bmax, 2.0f, &pt), */
-               f_gyroid(&bmin, &bmax, 2.0f, &pt),
-               pt, dir, norm, found, 500, 0.00001f);
+  return sphere_trace(entity,
+               pt, dir, 500, 0.00001f);
+  /* return 0; */
 }
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
-                        float camDist,
-                        float camTheta,
-                        float camPhi,
-                        float3 camTarget)
+                    global uchar* entities,
+                    float camDist,
+                    float camTheta,
+                    float camPhi,
+                    float3 camTarget)
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
@@ -123,9 +188,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir,
-                         (float3)(-5.0f, -5.0f, -5.0f),
-                         (float3)(5.0f, 5.0f, 5.0f));
+  pBuffer[i] = trace_any(pos, dir, entities);
 }
 	)";
 

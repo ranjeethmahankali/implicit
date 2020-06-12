@@ -1,14 +1,5 @@
 #include "raytrace.h"
 
-uint colorToInt(float3 rgb)
-{
-  uint color = 0xff000000;
-  color |= ((uint)(rgb.x * 255));
-  color |= ((uint)(rgb.y * 255)) << 8;
-  color |= ((uint)(rgb.z * 255)) << 16;
-  return color;
-}
-
 void perspective_project(float camDist,
                          float camTheta,
                          float camPhi,
@@ -38,33 +29,11 @@ void perspective_project(float camDist,
   *dir = normalize((*pos) - center);
 }
 
-float f_box(float3* bmin, float3* bmax, float3* pt)
-{
-  float val = -FLT_MAX;
-  val = max(val, (*pt).x - (*bmax).x);
-  val = max(val, (*bmin).x - (*pt).x);
-  val = max(val, (*pt).y - (*bmax).y);
-  val = max(val, (*bmin).y - (*pt).y);
-  val = max(val, (*pt).z - (*bmax).z);
-  val = max(val, (*bmin).z - (*pt).z);
-  return val;
-}
-
 float f_capsule(float3* a, float3* b, float thick, float3* pt)
 {
   float3 ln = *b - *a;
   float r = min(1.0f, max(0.0f, dot(ln, *pt - *a) / dot(ln, ln)));
   return length((*a + ln * r) - *pt) - thick;
-}
-
-float f_gyroid(float3* bmin, float3* bmax, float scale, float3* pt)
-{
-  float sx, cx, sy, cy, sz, cz;
-  sx = sincos((*pt).x * scale, &cx);
-  sy = sincos((*pt).y * scale, &cy);
-  sz = sincos((*pt).z * scale, &cz);
-  return max(length(*pt) - 5.0f,
-             (fabs(sx * cy + sy * cz + sz * cx) - 0.2f) / 10.0f);
 }
 
 float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
@@ -74,21 +43,19 @@ float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
   return min(a, b);
 }
 
-uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
+uint trace_any(float3 pt, float3 dir, global uchar* entity)
 {
-  SPHERE_TRACE(
-               /* f_box(&bmin, &bmax, &pt), */
-               /* f_capsule(&bmin, &bmax, 3, &pt), */
-               /* f_testUnion(&bmin, &bmax, 2.0f, &pt), */
-               f_gyroid(&bmin, &bmax, 2.0f, &pt),
-               pt, dir, norm, found, 500, 0.00001f);
+  return sphere_trace(entity,
+               pt, dir, 500, 0.00001f);
+  /* return 0; */
 }
 
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
-                        float camDist,
-                        float camTheta,
-                        float camPhi,
-                        float3 camTarget)
+                    global uchar* entities,
+                    float camDist,
+                    float camTheta,
+                    float camPhi,
+                    float3 camTarget)
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
@@ -96,7 +63,5 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir,
-                         (float3)(-5.0f, -5.0f, -5.0f),
-                         (float3)(5.0f, 5.0f, 5.0f));
+  pBuffer[i] = trace_any(pos, dir, entities);
 }
