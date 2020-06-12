@@ -358,6 +358,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-
-# Ignoring the props file that builds the clkernels
-implicit/build_cl_kernels.props

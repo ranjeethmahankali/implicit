@@ -111,7 +111,7 @@ uint trace_any(float3 pt, float3 dir, float3 bmin, float3 bmax)
                f_gyroid(&bmin, &bmax, 2.0f, &pt),
                pt, dir, norm, found, 500, 0.00001f);
 }
-kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
+kernel void k_trace(global uint* pBuffer, // The pixel buffer
                         float camDist,
                         float camTheta,
                         float camPhi,
@@ -123,9 +123,6 @@ kernel void k_traceCube(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  /* pBuffer[i] = trace_box(pos, dir, */
-  /*                        (float3)(-5.0f, -5.0f, -5.0f), */
-  /*                        (float3)(5.0f, 5.0f, 5.0f)); */
   pBuffer[i] = trace_any(pos, dir,
                          (float3)(-5.0f, -5.0f, -5.0f),
                          (float3)(5.0f, 5.0f, 5.0f));

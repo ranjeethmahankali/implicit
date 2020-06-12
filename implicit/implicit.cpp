@@ -166,7 +166,7 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_traceCube");
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
     }
     CATCH_EXIT_CL_ERR;
 };
