@@ -3,10 +3,9 @@ namespace cl_kernel_sources
 	constexpr char render[] = R"(
 #define DX 0.0001f
 #define BOUND 20.0f
-#define UINT32_TYPE uint
+#define UINT_TYPE uint
 #define FLT_TYPE float
-#define UINT8_TYPE uchar
-#define PACKED// __attribute__((packed))
+#define PACKED __attribute__((packed))
 #define ENT_TYPE_BOX 1
 struct i_box
 {
@@ -27,8 +26,8 @@ struct i_gyroid
 #define ENT_TYPE_BOOLEAN_UNION 4
 struct i_boolean_union
 {
-  UINT32_TYPE index_a;
-  UINT32_TYPE index_b;
+  UINT_TYPE index_a;
+  UINT_TYPE index_b;
 } PACKED;
 union i_entity
 {
@@ -39,12 +38,11 @@ union i_entity
 };
 struct wrapper
 {
-  UINT8_TYPE type;
   union i_entity entity;
+  UINT_TYPE type;
 } PACKED;
-#undef UINT32_TYPE
+#undef UINT_TYPE
 #undef FLT_TYPE
-#undef UINT8_TYPE
 #define OFFSET(src, target, dtype, var) (target*)(src + (uint)(&(((dtype*)0)->var)))
 float f_box(global uchar* eptr, float3* pt)
 {
@@ -188,7 +186,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir, entities);
+  pBuffer[i] = trace_any(pos, dir, entities + sizeof(struct wrapper));
 }
 	)";
 

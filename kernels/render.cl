@@ -63,5 +63,5 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir, entities);
+  pBuffer[i] = trace_any(pos, dir, entities + sizeof(struct wrapper));
 }

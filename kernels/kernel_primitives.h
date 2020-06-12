@@ -1,14 +1,12 @@
-#define UINT32_TYPE uint
+#define UINT_TYPE uint
 #define FLT_TYPE float
-#define UINT8_TYPE uchar
 
-#define PACKED// __attribute__((packed))
+#define PACKED __attribute__((packed))
 
 #include "primitives.h"
 
-#undef UINT32_TYPE
+#undef UINT_TYPE
 #undef FLT_TYPE
-#undef UINT8_TYPE
 
 #define OFFSET(src, target, dtype, var) (target*)(src + (uint)(&(((dtype*)0)->var)))
 

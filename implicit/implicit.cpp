@@ -253,6 +253,9 @@ int main()
     ent.type = ENT_TYPE_GYROID;
     ent.entity.gyroid = { 2.0f, 0.2f };
     add_entity(ent, 0);
+    ent.type = ENT_TYPE_BOX;
+    ent.entity.box = { -5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f, };
+    add_entity(ent, 1);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {

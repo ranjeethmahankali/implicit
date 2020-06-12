@@ -21,8 +21,8 @@ struct i_gyroid
 #define ENT_TYPE_BOOLEAN_UNION 4
 struct i_boolean_union
 {
-  UINT32_TYPE index_a;
-  UINT32_TYPE index_b;
+  UINT_TYPE index_a;
+  UINT_TYPE index_b;
 } PACKED;
 
 union i_entity
@@ -35,6 +35,6 @@ union i_entity
 
 struct wrapper
 {
-  UINT8_TYPE type;
   union i_entity entity;
+  UINT_TYPE type;
 } PACKED;
