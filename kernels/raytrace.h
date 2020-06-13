@@ -26,7 +26,7 @@ uint colorToInt(float3 rgb)
 
 /*Perform sphere tracing for a given implicit function that
 terminates based on the given tolerance or max-iterations.*/
-uint sphere_trace(global uchar* entity,
+uint sphere_trace(global struct wrapper* entity,
                   float3 pt,
                   float3 dir,
                   int iters,

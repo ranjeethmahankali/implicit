@@ -43,7 +43,7 @@ float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
   return min(a, b);
 }
 
-uint trace_any(float3 pt, float3 dir, global uchar* entity)
+uint trace_any(float3 pt, float3 dir, global struct wrapper* entity)
 {
   return sphere_trace(entity,
                pt, dir, 500, 0.00001f);
@@ -51,7 +51,7 @@ uint trace_any(float3 pt, float3 dir, global uchar* entity)
 }
 
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
-                    global uchar* entities,
+                    global struct wrapper* entities,
                     float camDist,
                     float camTheta,
                     float camPhi,
@@ -63,5 +63,5 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir, entities + sizeof(struct wrapper));
+  pBuffer[i] = trace_any(pos, dir, entities + 1);
 }
