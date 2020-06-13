@@ -91,6 +91,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="gl_util.cpp" />
+    <ClCompile Include="host_primitives.cpp" />
     <ClCompile Include="implicit.cpp" />
     <ClCompile Include="camera.cpp" />
   </ItemGroup>

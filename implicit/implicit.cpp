@@ -31,7 +31,8 @@ static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
 static cl::Buffer s_entityBuffer;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_uint, cl_uint, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
+static uint32_t s_currentEntity = -1;
 
 static void init_ogl()
 {
@@ -170,7 +171,7 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_uint, cl_uint, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -207,13 +208,15 @@ static void init_buffers()
     CATCH_EXIT_CL_ERR;
 }
 
-void add_entity(const wrapper& entity, size_t index)
+void add_entity(const wrapper& entity)
 {
     try
     {
+        if (!entities::is_valid_entity(entity))
+            return;
+        size_t index = entities::num_entities();
+        entities::push_back(entity);
         s_queue.enqueueWriteBuffer(s_entityBuffer, CL_TRUE, sizeof(wrapper) * index, sizeof(wrapper), &entity);
-        s_queue.flush();
-        s_queue.finish();
     }
     CATCH_EXIT_CL_ERR;
 }
@@ -232,6 +235,8 @@ static void render()
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
                 s_pBuffer,
                 s_entityBuffer,
+                s_currentEntity,
+                (cl_uint)entities::num_entities(),
                 camera::distance(),
                 camera::theta(),
                 camera::phi(),
@@ -250,15 +255,19 @@ int main()
     init_ocl();
     init_buffers();
     wrapper ent;
-    ent.type = ENT_TYPE_GYROID;
-    ent.entity.gyroid = { 2.0f, 0.2f };
-    add_entity(ent, 0);
     ent.type = ENT_TYPE_BOX;
-    ent.entity.box = { -5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f, };
-    add_entity(ent, 1);
+    ent.entity.box = { 0.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f };
+    add_entity(ent);
+    ent.type = ENT_TYPE_GYROID;
+    ent.entity.box = { 2.0f, 0.2f };
+    add_entity(ent);
+    ent.type = ENT_TYPE_BOOLEAN_INTERSECTION;
+    ent.entity.boolean_intersection = { 0ui32, 1ui32 };
+    add_entity(ent);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
+        s_currentEntity = 2;
         render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));

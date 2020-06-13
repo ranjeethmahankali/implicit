@@ -43,25 +43,46 @@ float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
   return min(a, b);
 }
 
-uint trace_any(float3 pt, float3 dir, global struct wrapper* entity)
+uint trace_all(float3 pt, float3 dir, global struct wrapper* entities, uint nEntities)
 {
-  return sphere_trace(entity,
-               pt, dir, 500, 0.00001f);
-  /* return 0; */
+  float dMarch = FLT_MAX;
+  float dBest = FLT_MAX;
+  uint color, colorBest;
+  for (uint i = 0; i < nEntities; i++){
+    color = sphere_trace(entities, i, pt, dir, &dMarch, 500, 0.00001f);
+    if (dMarch < dBest){
+      colorBest = color;
+      dBest = dMarch;
+    }
+  }
+  return colorBest;
+}
+
+uint trace_one(float3 pt,
+               float3 dir,
+               global struct wrapper* entities,
+               uint entityIndex,
+               uint nEntities){
+  float dMarch = 0.0f;
+  return sphere_trace(entities, entityIndex, pt, dir, &dMarch, 500, 0.00001f);
 }
 
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global struct wrapper* entities,
+                    uint entityIndex,
+                    uint nEntities,
                     float camDist,
                     float camTheta,
                     float camPhi,
                     float3 camTarget)
 {
+  if (entityIndex >= nEntities)
+    return;
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
   float3 pos, dir;
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir, entities + 1);
+  pBuffer[i] = trace_one(pos, dir, entities, entityIndex, nEntities);
 }

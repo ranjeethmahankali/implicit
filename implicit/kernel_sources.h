@@ -3,6 +3,7 @@ namespace cl_kernel_sources
 	constexpr char render[] = R"(
 #define DX 0.0001f
 #define BOUND 20.0f
+#define BACKGROUND_COLOR 0xff101010
 #define UINT_TYPE uint
 #define FLT_TYPE float
 #define PACKED __attribute__((packed))
@@ -29,12 +30,19 @@ struct i_boolean_union
   UINT_TYPE index_a;
   UINT_TYPE index_b;
 } PACKED;
+#define ENT_TYPE_BOOLEAN_INTERSECTION 5
+struct i_boolean_intersection
+{
+  UINT_TYPE index_a;
+  UINT_TYPE index_b;
+} PACKED;
 union i_entity
 {
   struct i_box box;
   struct i_sphere sphere;
   struct i_gyroid gyroid;
   struct i_boolean_union boolean_union;
+  struct i_boolean_intersection boolean_intersection;
 };
 struct wrapper
 {
@@ -43,7 +51,10 @@ struct wrapper
 } PACKED;
 #undef UINT_TYPE
 #undef FLT_TYPE
-float f_box(global union i_entity* eptr, float3* pt)
+float f_entity(global struct wrapper* entities, uint index, float3* pt);
+float f_box(global union i_entity* eptr,
+            float3* pt,
+            global struct wrapper* entities)
 {
   global float* bounds = eptr->box.bounds;
   float val = -FLT_MAX;
@@ -55,7 +66,17 @@ float f_box(global union i_entity* eptr, float3* pt)
   val = max(val, bounds[2] - (*pt).z);
   return val;
 }
-float f_gyroid(global union i_entity* eptr, float3* pt)
+float f_sphere(global union i_entity* eptr,
+               float3* pt,
+               global struct wrapper* entities)
+{
+  global float* center = eptr->sphere.center;
+  float radius = eptr->sphere.radius;
+  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+}
+float f_gyroid(global union i_entity* eptr,
+               float3* pt,
+               global struct wrapper* entities)
 {
   float scale = eptr->gyroid.scale;
   float thick = eptr->gyroid.thickness;
@@ -65,20 +86,32 @@ float f_gyroid(global union i_entity* eptr, float3* pt)
   sz = sincos((*pt).z * scale, &cz);
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
-float f_sphere(global union i_entity* eptr, float3* pt)
-{
-  global float* center = eptr->sphere.center;
-  float radius = eptr->sphere.radius;
-  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+float f_boolean_union(global union i_entity* eptr,
+                      float3* pt,
+                      global struct wrapper* entities){
+  uint a = eptr->boolean_union.index_a;
+  uint b = eptr->boolean_union.index_b;
+  return min(f_entity(entities, a, pt), f_entity(entities, b, pt));
 }
-float f_entity(global struct wrapper* wrap, float3* pt)
+float f_boolean_intersection(global union i_entity* eptr,
+                             float3* pt,
+                             global struct wrapper* entities){
+  uint a = eptr->boolean_union.index_a;
+  uint b = eptr->boolean_union.index_b;
+  return max(f_entity(entities, a, pt), f_entity(entities, b, pt));
+}
+float f_entity(global struct wrapper* entities, uint index, float3* pt)
 {
+  global struct wrapper* wrap = entities + index;
   uint type = wrap->type;
   global union i_entity* ent = &(wrap->entity);
   switch (type){
-  case ENT_TYPE_BOX: return f_box(ent, pt);
-  case ENT_TYPE_SPHERE: return f_sphere(ent, pt);
-  case ENT_TYPE_GYROID: return f_gyroid(ent, pt);
+  case ENT_TYPE_BOX: return f_box(ent, pt, entities);
+  case ENT_TYPE_SPHERE: return f_sphere(ent, pt, entities);
+  case ENT_TYPE_GYROID: return f_gyroid(ent, pt, entities);
+  case ENT_TYPE_BOOLEAN_UNION: return f_boolean_union(ent, pt, entities);
+  case ENT_TYPE_BOOLEAN_INTERSECTION:
+    return f_boolean_intersection(ent, pt, entities);
   default: return 1;
   }
 }
@@ -101,33 +134,35 @@ uint colorToInt(float3 rgb)
   color |= ((uint)(rgb.z * 255)) << 16;
   return color;
 }
-/*Perform sphere tracing for a given implicit function that
-terminates based on the given tolerance or max-iterations.*/
-uint sphere_trace(global struct wrapper* entity,
+uint sphere_trace(global struct wrapper* entities,
+                  uint index,
                   float3 pt,
                   float3 dir,
+                  float* dTotal,
                   int iters,
                   float tolerance)
 {
   dir = normalize(dir);
+  *dTotal = 0.0f;
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
-    float d = f_entity(entity, &pt);
+    float d = f_entity(entities, index, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(entity, &pt), pt, norm);
+      GRADIENT(f_entity(entities, index, &pt), pt, norm);
       found = true;
       break;
     }
     pt += dir * d;
+    *dTotal += d;
     if (i > 5 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
   }
   float d = dot(normalize(norm), -dir);
   float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d;
-  return found ? colorToInt(color) : 0xff101010;
+  return found ? colorToInt(color) : BACKGROUND_COLOR;
 }
 void perspective_project(float camDist,
                          float camTheta,
@@ -166,26 +201,46 @@ float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
   float b = f_capsule(bmin, bmax, radius * 0.5f, pt);
   return min(a, b);
 }
-uint trace_any(float3 pt, float3 dir, global struct wrapper* entity)
+uint trace_all(float3 pt, float3 dir, global struct wrapper* entities, uint nEntities)
 {
-  return sphere_trace(entity,
-               pt, dir, 500, 0.00001f);
-  /* return 0; */
+  float dMarch = FLT_MAX;
+  float dBest = FLT_MAX;
+  uint color, colorBest;
+  for (uint i = 0; i < nEntities; i++){
+    color = sphere_trace(entities, i, pt, dir, &dMarch, 500, 0.00001f);
+    if (dMarch < dBest){
+      colorBest = color;
+      dBest = dMarch;
+    }
+  }
+  return colorBest;
+}
+uint trace_one(float3 pt,
+               float3 dir,
+               global struct wrapper* entities,
+               uint entityIndex,
+               uint nEntities){
+  float dMarch = 0.0f;
+  return sphere_trace(entities, entityIndex, pt, dir, &dMarch, 500, 0.00001f);
 }
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global struct wrapper* entities,
+                    uint entityIndex,
+                    uint nEntities,
                     float camDist,
                     float camTheta,
                     float camPhi,
                     float3 camTarget)
 {
+  if (entityIndex >= nEntities)
+    return;
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
   float3 pos, dir;
   perspective_project(camDist, camTheta, camPhi, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  pBuffer[i] = trace_any(pos, dir, entities + 1);
+  pBuffer[i] = trace_one(pos, dir, entities, entityIndex, nEntities);
 }
 	)";
 

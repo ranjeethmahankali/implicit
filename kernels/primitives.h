@@ -25,12 +25,20 @@ struct i_boolean_union
   UINT_TYPE index_b;
 } PACKED;
 
+#define ENT_TYPE_BOOLEAN_INTERSECTION 5
+struct i_boolean_intersection
+{
+  UINT_TYPE index_a;
+  UINT_TYPE index_b;
+} PACKED;
+
 union i_entity
 {
   struct i_box box;
   struct i_sphere sphere;
   struct i_gyroid gyroid;
   struct i_boolean_union boolean_union;
+  struct i_boolean_intersection boolean_intersection;
 };
 
 struct wrapper

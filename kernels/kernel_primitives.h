@@ -8,7 +8,11 @@
 #undef UINT_TYPE
 #undef FLT_TYPE
 
-float f_box(global union i_entity* eptr, float3* pt)
+float f_entity(global struct wrapper* entities, uint index, float3* pt);
+
+float f_box(global union i_entity* eptr,
+            float3* pt,
+            global struct wrapper* entities)
 {
   global float* bounds = eptr->box.bounds;
   float val = -FLT_MAX;
@@ -21,7 +25,18 @@ float f_box(global union i_entity* eptr, float3* pt)
   return val;
 }
 
-float f_gyroid(global union i_entity* eptr, float3* pt)
+float f_sphere(global union i_entity* eptr,
+               float3* pt,
+               global struct wrapper* entities)
+{
+  global float* center = eptr->sphere.center;
+  float radius = eptr->sphere.radius;
+  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+}
+
+float f_gyroid(global union i_entity* eptr,
+               float3* pt,
+               global struct wrapper* entities)
 {
   float scale = eptr->gyroid.scale;
   float thick = eptr->gyroid.thickness;
@@ -32,21 +47,34 @@ float f_gyroid(global union i_entity* eptr, float3* pt)
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
 
-float f_sphere(global union i_entity* eptr, float3* pt)
-{
-  global float* center = eptr->sphere.center;
-  float radius = eptr->sphere.radius;
-  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+float f_boolean_union(global union i_entity* eptr,
+                      float3* pt,
+                      global struct wrapper* entities){
+  uint a = eptr->boolean_union.index_a;
+  uint b = eptr->boolean_union.index_b;
+  return min(f_entity(entities, a, pt), f_entity(entities, b, pt));
 }
 
-float f_entity(global struct wrapper* wrap, float3* pt)
+float f_boolean_intersection(global union i_entity* eptr,
+                             float3* pt,
+                             global struct wrapper* entities){
+  uint a = eptr->boolean_union.index_a;
+  uint b = eptr->boolean_union.index_b;
+  return max(f_entity(entities, a, pt), f_entity(entities, b, pt));
+}
+
+float f_entity(global struct wrapper* entities, uint index, float3* pt)
 {
+  global struct wrapper* wrap = entities + index;
   uint type = wrap->type;
   global union i_entity* ent = &(wrap->entity);
   switch (type){
-  case ENT_TYPE_BOX: return f_box(ent, pt);
-  case ENT_TYPE_SPHERE: return f_sphere(ent, pt);
-  case ENT_TYPE_GYROID: return f_gyroid(ent, pt);
+  case ENT_TYPE_BOX: return f_box(ent, pt, entities);
+  case ENT_TYPE_SPHERE: return f_sphere(ent, pt, entities);
+  case ENT_TYPE_GYROID: return f_gyroid(ent, pt, entities);
+  case ENT_TYPE_BOOLEAN_UNION: return f_boolean_union(ent, pt, entities);
+  case ENT_TYPE_BOOLEAN_INTERSECTION:
+    return f_boolean_intersection(ent, pt, entities);
   default: return 1;
   }
 }

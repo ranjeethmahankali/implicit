@@ -24,6 +24,9 @@
     <ClCompile Include="gl_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="host_primitives.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel_sources.h">
