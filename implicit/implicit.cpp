@@ -261,13 +261,10 @@ int main()
     ent.type = ENT_TYPE_GYROID;
     ent.entity.box = { 2.0f, 0.2f };
     add_entity(ent);
-    ent.type = ENT_TYPE_BOOLEAN_INTERSECTION;
-    ent.entity.boolean_intersection = { 0ui32, 1ui32 };
-    add_entity(ent);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
-        s_currentEntity = 2;
+        s_currentEntity = 1;
         render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));

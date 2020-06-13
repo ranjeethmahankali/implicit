@@ -24,25 +24,11 @@ struct i_gyroid
   FLT_TYPE scale;
   FLT_TYPE thickness;
 } PACKED;
-#define ENT_TYPE_BOOLEAN_UNION 4
-struct i_boolean_union
-{
-  UINT_TYPE index_a;
-  UINT_TYPE index_b;
-} PACKED;
-#define ENT_TYPE_BOOLEAN_INTERSECTION 5
-struct i_boolean_intersection
-{
-  UINT_TYPE index_a;
-  UINT_TYPE index_b;
-} PACKED;
 union i_entity
 {
   struct i_box box;
   struct i_sphere sphere;
   struct i_gyroid gyroid;
-  struct i_boolean_union boolean_union;
-  struct i_boolean_intersection boolean_intersection;
 };
 struct wrapper
 {
@@ -86,20 +72,6 @@ float f_gyroid(global union i_entity* eptr,
   sz = sincos((*pt).z * scale, &cz);
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
-float f_boolean_union(global union i_entity* eptr,
-                      float3* pt,
-                      global struct wrapper* entities){
-  uint a = eptr->boolean_union.index_a;
-  uint b = eptr->boolean_union.index_b;
-  return min(f_entity(entities, a, pt), f_entity(entities, b, pt));
-}
-float f_boolean_intersection(global union i_entity* eptr,
-                             float3* pt,
-                             global struct wrapper* entities){
-  uint a = eptr->boolean_union.index_a;
-  uint b = eptr->boolean_union.index_b;
-  return max(f_entity(entities, a, pt), f_entity(entities, b, pt));
-}
 float f_entity(global struct wrapper* entities, uint index, float3* pt)
 {
   global struct wrapper* wrap = entities + index;
@@ -109,9 +81,6 @@ float f_entity(global struct wrapper* entities, uint index, float3* pt)
   case ENT_TYPE_BOX: return f_box(ent, pt, entities);
   case ENT_TYPE_SPHERE: return f_sphere(ent, pt, entities);
   case ENT_TYPE_GYROID: return f_gyroid(ent, pt, entities);
-  case ENT_TYPE_BOOLEAN_UNION: return f_boolean_union(ent, pt, entities);
-  case ENT_TYPE_BOOLEAN_INTERSECTION:
-    return f_boolean_intersection(ent, pt, entities);
   default: return 1;
   }
 }

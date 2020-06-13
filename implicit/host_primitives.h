@@ -24,8 +24,4 @@ namespace entities
     bool is_valid_sphere(const i_sphere& sphere);
 
     bool is_valid_gyroid(const i_gyroid& gyroid);
-
-    bool is_valid_union(const i_boolean_union& booleanUnion);
-
-    bool is_valid_intersection(const i_boolean_intersection& booleanIntersection);
 }
