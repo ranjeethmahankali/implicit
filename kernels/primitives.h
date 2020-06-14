@@ -17,16 +17,3 @@ struct i_gyroid
   FLT_TYPE scale;
   FLT_TYPE thickness;
 } PACKED;
-
-union i_entity
-{
-  struct i_box box;
-  struct i_sphere sphere;
-  struct i_gyroid gyroid;
-};
-
-struct wrapper
-{
-  union i_entity entity;
-  UINT_TYPE type;
-} PACKED;

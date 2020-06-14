@@ -1,43 +1,54 @@
 #include "host_primitives.h"
 #include <vector>
 
-static std::vector<wrapper> s_entities;
-
-size_t entities::num_entities()
+size_t entities::entity::render_data_size() const
 {
-    return s_entities.size();
+    return sizeof(uint32_t) + num_render_bytes();
 }
 
-void entities::push_back(const wrapper& entity)
+void entities::entity::copy_render_data(void* dest) const
 {
-    s_entities.push_back(entity);
+    uint32_t t = type();
+    std::memcpy(dest, &t, sizeof(t));
+    copy_render_bytes((uint8_t*)dest + sizeof(t));
 }
 
-bool entities::is_valid_entity(const wrapper& entity)
+entities::box3::box3(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax)
+    :min(xmin, ymin, zmin), max(xmax, ymax, zmax)
 {
-    switch (entity.type)
-    {
-    case ENT_TYPE_BOX: return is_valid_box(entity.entity.box);
-    case ENT_TYPE_SPHERE: return is_valid_sphere(entity.entity.sphere);
-    case ENT_TYPE_GYROID: return is_valid_gyroid(entity.entity.gyroid);
-    default: return false;
-    }
 }
 
-bool entities::is_valid_box(const i_box& box)
+uint8_t entities::box3::type() const
 {
-    return
-        box.bounds[3] > box.bounds[0] &&
-        box.bounds[4] > box.bounds[1] &&
-        box.bounds[5] > box.bounds[2];
+    return ENT_TYPE_BOX;
 }
 
-bool entities::is_valid_sphere(const i_sphere& sphere)
+bool entities::simple_entity::simple() const
 {
-    return sphere.radius > 0;
+    return true;
 }
 
-bool entities::is_valid_gyroid(const i_gyroid& gyroid)
+bool entities::csg_entity::simple() const
 {
-    return gyroid.scale > 0.0f && gyroid.thickness > 0.0f;
+    return false;
+}
+
+entities::sphere3::sphere3(float xcenter, float ycenter, float zcenter, float rad)
+    : center(xcenter, ycenter, zcenter), radius(rad)
+{
+}
+
+uint8_t entities::sphere3::type() const
+{
+    return ENT_TYPE_SPHERE;
+}
+
+entities::gyroid::gyroid(float sc, float th)
+    : scale(sc), thickness(th)
+{
+}
+
+uint8_t entities::gyroid::type() const
+{
+    return ENT_TYPE_GYROID;
 }

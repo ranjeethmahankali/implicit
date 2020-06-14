@@ -8,11 +8,8 @@
 #undef UINT_TYPE
 #undef FLT_TYPE
 
-float f_entity(global struct wrapper* entities, uint index, float3* pt);
-
 float f_box(global union i_entity* eptr,
-            float3* pt,
-            global struct wrapper* entities)
+            float3* pt)
 {
   global float* bounds = eptr->box.bounds;
   float val = -FLT_MAX;
@@ -26,8 +23,7 @@ float f_box(global union i_entity* eptr,
 }
 
 float f_sphere(global union i_entity* eptr,
-               float3* pt,
-               global struct wrapper* entities)
+               float3* pt)
 {
   global float* center = eptr->sphere.center;
   float radius = eptr->sphere.radius;
@@ -35,8 +31,7 @@ float f_sphere(global union i_entity* eptr,
 }
 
 float f_gyroid(global union i_entity* eptr,
-               float3* pt,
-               global struct wrapper* entities)
+               float3* pt)
 {
   float scale = eptr->gyroid.scale;
   float thick = eptr->gyroid.thickness;
@@ -46,18 +41,4 @@ float f_gyroid(global union i_entity* eptr,
   sz = sincos((*pt).z * scale, &cz);
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
-
-float f_entity(global struct wrapper* entities, uint index, float3* pt)
-{
-  global struct wrapper* wrap = entities + index;
-  uint type = wrap->type;
-  global union i_entity* ent = &(wrap->entity);
-  switch (type){
-  case ENT_TYPE_BOX: return f_box(ent, pt, entities);
-  case ENT_TYPE_SPHERE: return f_sphere(ent, pt, entities);
-  case ENT_TYPE_GYROID: return f_gyroid(ent, pt, entities);
-  default: return 1;
-  }
-}
-
 

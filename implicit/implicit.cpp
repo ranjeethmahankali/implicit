@@ -20,7 +20,7 @@ std::cerr << "OpenCL Error: " << cl_err_str(err.err()) << std::endl;\
 exit(err.err());\
 }
 
-static constexpr size_t MAX_NUM_ENTITIES = 32;
+static size_t ENTITY_BUFFER_SIZE = 1 << 10;
 
 static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 static GLFWwindow* s_window;
@@ -31,7 +31,7 @@ static uint32_t s_pboId = 0;
 static cl::BufferGL s_pBuffer;
 static cl::Buffer s_entityBuffer;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_uint, cl_uint, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
 static uint32_t s_currentEntity = -1;
 
 static void init_ogl()
@@ -171,7 +171,8 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_uint, cl_uint, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
+        ENTITY_BUFFER_SIZE = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / 8;
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -203,20 +204,18 @@ static void init_buffers()
             exit(1);
         }
 
-        s_entityBuffer = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, sizeof(wrapper) * MAX_NUM_ENTITIES);
+        s_entityBuffer = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, ENTITY_BUFFER_SIZE);
     }
     CATCH_EXIT_CL_ERR;
 }
 
-void add_entity(const wrapper& entity)
+void show_entity(const entities::entity& entity)
 {
     try
     {
-        if (!entities::is_valid_entity(entity))
-            return;
-        size_t index = entities::num_entities();
-        entities::push_back(entity);
-        s_queue.enqueueWriteBuffer(s_entityBuffer, CL_TRUE, sizeof(wrapper) * index, sizeof(wrapper), &entity);
+        std::vector<uint8_t> data(entity.render_data_size(), 0);
+        entity.copy_render_data(data.data());
+        s_queue.enqueueWriteBuffer(s_entityBuffer, CL_TRUE, 0, data.size(), data.data());
     }
     CATCH_EXIT_CL_ERR;
 }
@@ -235,8 +234,6 @@ static void render()
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
                 s_pBuffer,
                 s_entityBuffer,
-                s_currentEntity,
-                (cl_uint)entities::num_entities(),
                 camera::distance(),
                 camera::theta(),
                 camera::phi(),
@@ -254,13 +251,9 @@ int main()
     init_ogl();
     init_ocl();
     init_buffers();
-    wrapper ent;
-    ent.type = ENT_TYPE_BOX;
-    ent.entity.box = { 0.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f };
-    add_entity(ent);
-    ent.type = ENT_TYPE_GYROID;
-    ent.entity.box = { 2.0f, 0.2f };
-    add_entity(ent);
+
+    entities::box3 b(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {

@@ -25,7 +25,7 @@ uint colorToInt(float3 rgb)
   return color;
 }
 
-uint sphere_trace(global struct wrapper* entities,
+uint sphere_trace(global uchar* entities,
                   uint index,
                   float3 pt,
                   float3 dir,
