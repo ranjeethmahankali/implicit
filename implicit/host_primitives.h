@@ -1,9 +1,11 @@
 #include <stdint.h>
-
-namespace kernel
+#pragma warning(push)
+#pragma warning(disable : 26812)
+extern "C" 
 {
 #define FLT_TYPE float
-#define UINT_TYPE uint32_t
+#define UINT32_TYPE uint32_t
+#define UINT8_TYPE uint8_t
 #define PACKED
 
 #pragma pack(push, 1)
@@ -16,6 +18,7 @@ namespace kernel
 };
 
 #include <glm.hpp>
+#include <optional>
 
 namespace entities
 {
@@ -23,24 +26,39 @@ namespace entities
     {
     protected:
         entity() = default;
-        virtual size_t num_render_bytes() const = 0;
-        virtual void copy_render_bytes(void* const dest) const = 0;
+
     public:
         virtual uint8_t type() const = 0;
-
         virtual bool simple() const = 0;
-        size_t render_data_size() const;
-        void copy_render_data(void* dest) const;
+        virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const = 0;
+        virtual void copy_render_data(
+            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft) const = 0;
+    };
+
+    struct csg_entity : public entity
+    {
+        entity* left;
+        entity* right;
+        op_type op;
+
+        virtual bool simple() const;
+        virtual uint8_t type() const;
+        virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
+        virtual void copy_render_data(
+            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft) const;
     };
 
     struct simple_entity : public entity
     {
         virtual bool simple() const;
-    };
-
-    struct csg_entity : public entity
-    {
-        virtual bool simple() const;
+        virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
+        virtual size_t num_render_bytes() const = 0;
+        virtual void write_render_bytes(uint8_t*& bytes) const = 0;
+        virtual void copy_render_data(
+            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft) const;
     };
 
     struct box3 : public simple_entity
@@ -51,7 +69,7 @@ namespace entities
 
         virtual uint8_t type() const;
         virtual size_t num_render_bytes() const;
-        virtual void copy_render_bytes(void* const dest) const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 
     struct sphere3 : public simple_entity
@@ -60,9 +78,9 @@ namespace entities
         float radius;
         sphere3(float xcenter, float ycenter, float zcenter, float radius);
         
-        virtual size_t num_render_bytes() const;
-        virtual void copy_render_bytes(void* const dest) const;
         virtual uint8_t type() const;
+        virtual size_t num_render_bytes() const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 
     struct gyroid : public simple_entity
@@ -73,6 +91,7 @@ namespace entities
         
         virtual uint8_t type() const;
         virtual size_t num_render_bytes() const;
-        virtual void copy_render_bytes(void* const dest) const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 }
+#pragma warning(pop)
