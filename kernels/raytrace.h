@@ -25,8 +25,9 @@ uint colorToInt(float3 rgb)
   return color;
 }
 
-uint sphere_trace(global uchar* entities,
-                  uint index,
+uint sphere_trace(global uchar* bytes,
+                  global uint* offsets,
+                  global uchar* types,
                   float3 pt,
                   float3 dir,
                   float* dTotal,

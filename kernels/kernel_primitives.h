@@ -8,10 +8,13 @@
 #undef UINT_TYPE
 #undef FLT_TYPE
 
-float f_box(global union i_entity* eptr,
+#define CAST_TYPE(type, name, ptr) global type* name = (global type*)ptr
+
+float f_box(global uchar* ptr,
             float3* pt)
 {
-  global float* bounds = eptr->box.bounds;
+  CAST_TYPE(i_box, box, ptr);
+  global float* bounds = box->bounds;
   float val = -FLT_MAX;
   val = max(val, (*pt).x - bounds[3]);
   val = max(val, bounds[0] - (*pt).x);
@@ -22,19 +25,21 @@ float f_box(global union i_entity* eptr,
   return val;
 }
 
-float f_sphere(global union i_entity* eptr,
+float f_sphere(global uchar* ptr,
                float3* pt)
 {
-  global float* center = eptr->sphere.center;
-  float radius = eptr->sphere.radius;
+  CAST_TYPE(i_sphere, sphere, ptr);
+  global float* center = sphere->center;
+  float radius = sphere->radius;
   return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
 }
 
-float f_gyroid(global union i_entity* eptr,
+float f_gyroid(global uchar* ptr,
                float3* pt)
 {
-  float scale = eptr->gyroid.scale;
-  float thick = eptr->gyroid.thickness;
+  CAST_TYPE(i_gyroid, gyroid, ptr);
+  float scale = gyroid->scale;
+  float thick = gyroid->thickness;
   float sx, cx, sy, cy, sz, cz;
   sx = sincos((*pt).x * scale, &cx);
   sy = sincos((*pt).y * scale, &cy);
