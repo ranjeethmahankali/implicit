@@ -23,12 +23,12 @@ typedef struct PACKED
 
 #define ENT_TYPE_CSG 0
 
-enum op_type
+typedef enum
 {
     none = 0,
     bool_union = 1,
     bool_intersection = 2,
-};
+} op_type;
 
 typedef struct PACKED
 {

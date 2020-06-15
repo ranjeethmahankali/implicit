@@ -9,7 +9,7 @@
 
 #define __CL_ENABLE_EXCEPTIONS
 //#define __NO_STD_STRING
-#define  _VARIADIC_MAX 10
+#define  _VARIADIC_MAX 16
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.hpp>
@@ -20,19 +20,23 @@ std::cerr << "OpenCL Error: " << cl_err_str(err.err()) << std::endl;\
 exit(err.err());\
 }
 
-static size_t ENTITY_BUFFER_SIZE = 1 << 10;
-
 static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
 static cl::Context s_context;
 static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
-static cl::BufferGL s_pBuffer;
-static cl::Buffer s_entityBuffer;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>* s_kernel;
-static uint32_t s_currentEntity = -1;
+static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_float3, cl_float3>* s_kernel;
+
+static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
+static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
+static cl::Buffer s_typeBuf; // The types of simple entities.
+static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
+static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
+
+static size_t s_globalMemSize = 0;
+static size_t s_maxBufSize = 0;
 
 static void init_ogl()
 {
@@ -171,8 +175,9 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl_float, cl_float, cl_float, cl_float3>(s_program, "k_trace");
-        ENTITY_BUFFER_SIZE = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / 8;
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_float3, cl_float3>(s_program, "k_trace");
+        s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
+        s_maxBufSize = s_globalMemSize / 32;
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -204,18 +209,46 @@ static void init_buffers()
             exit(1);
         }
 
-        s_entityBuffer = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, ENTITY_BUFFER_SIZE);
+        s_packedBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
+        s_typeBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
+        s_offsetBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
+        s_opStepBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
     }
     CATCH_EXIT_CL_ERR;
 }
+
+template <typename T>
+void write_buf(cl::Buffer& buffer, T* data, size_t size)
+{
+    if (size * sizeof(T) > s_maxBufSize)
+    {
+        std::cerr << "Device buffer overflow... terminating application" << std::endl;
+        exit(1);
+    }
+    s_queue.enqueueWriteBuffer(buffer, CL_TRUE, 0, size * sizeof(T), data);
+};
 
 void show_entity(const entities::entity& entity)
 {
     try
     {
-        std::vector<uint8_t> data(entity.render_data_size(), 0);
-        entity.copy_render_data(data.data());
-        s_queue.enqueueWriteBuffer(s_entityBuffer, CL_TRUE, 0, data.size(), data.data());
+        size_t nBytes = 0, nEntities = 0, nSteps = 0;
+        entity.render_data_size(nBytes, nEntities, nSteps);
+        std::vector<uint8_t> bytes(nBytes);
+        uint8_t* bptr = bytes.data();
+        std::vector<uint32_t> offsets(nEntities);
+        uint32_t* optr = offsets.data();
+        std::vector<uint8_t> types(nEntities);
+        uint8_t* tptr = types.data();
+        std::vector<op_step> steps(nSteps);
+        op_step* sptr = steps.data();
+        size_t ei = 0, co = 0;
+        entity.copy_render_data(bptr, optr, tptr, sptr, ei, co);
+        
+        write_buf(s_packedBuf, bptr, nBytes);
+        write_buf(s_typeBuf, tptr, nEntities);
+        write_buf(s_offsetBuf, optr, nEntities);
+        write_buf(s_opStepBuf, sptr, nSteps);
     }
     CATCH_EXIT_CL_ERR;
 }
@@ -233,10 +266,11 @@ static void render()
             glm::vec3 ctarget = camera::target();
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
                 s_pBuffer,
-                s_entityBuffer,
-                camera::distance(),
-                camera::theta(),
-                camera::phi(),
+                s_packedBuf,
+                s_typeBuf,
+                s_offsetBuf,
+                s_opStepBuf,
+                { camera::distance(), camera::theta(), camera::phi() },
                 { ctarget.x, ctarget.y, ctarget.z });
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
@@ -257,7 +291,6 @@ int main()
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
-        s_currentEntity = 1;
         render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));

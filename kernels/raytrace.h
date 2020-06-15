@@ -39,10 +39,10 @@ uint sphere_trace(global uchar* bytes,
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
-    float d = f_entity(entities, index, &pt);
+    float d = 0.0; //f_entity(entities, index, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(entities, index, &pt), pt, norm);
+      /* GRADIENT(f_entity(entities, index, &pt), pt, norm); */
       found = true;
       break;
     }
