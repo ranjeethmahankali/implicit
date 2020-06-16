@@ -44,40 +44,51 @@ typedef struct PACKED
 #undef UINT_TYPE
 #undef FLT_TYPE
 #define CAST_TYPE(type, name, ptr) global type* name = (global type*)ptr
-/* float f_box(global uchar* ptr, */
-/*             float3* pt) */
-/* { */
-/*   CAST_TYPE(i_box, box, ptr); */
-/*   global float* bounds = box->bounds; */
-/*   float val = -FLT_MAX; */
-/*   val = max(val, (*pt).x - bounds[3]); */
-/*   val = max(val, bounds[0] - (*pt).x); */
-/*   val = max(val, (*pt).y - bounds[4]); */
-/*   val = max(val, bounds[1] - (*pt).y); */
-/*   val = max(val, (*pt).z - bounds[5]); */
-/*   val = max(val, bounds[2] - (*pt).z); */
-/*   return val; */
-/* } */
-/* float f_sphere(global uchar* ptr, */
-/*                float3* pt) */
-/* { */
-/*   CAST_TYPE(i_sphere, sphere, ptr); */
-/*   global float* center = sphere->center; */
-/*   float radius = sphere->radius; */
-/*   return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius); */
-/* } */
-/* float f_gyroid(global uchar* ptr, */
-/*                float3* pt) */
-/* { */
-/*   CAST_TYPE(i_gyroid, gyroid, ptr); */
-/*   float scale = gyroid->scale; */
-/*   float thick = gyroid->thickness; */
-/*   float sx, cx, sy, cy, sz, cz; */
-/*   sx = sincos((*pt).x * scale, &cx); */
-/*   sy = sincos((*pt).y * scale, &cy); */
-/*   sz = sincos((*pt).z * scale, &cz); */
-/*   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f; */
-/* } */
+float f_box(global uchar* packed,
+            float3* pt)
+{
+  CAST_TYPE(i_box, box, packed);
+  global float* bounds = box->bounds;
+  float val = -FLT_MAX;
+  val = max(val, (*pt).x - bounds[3]);
+  val = max(val, bounds[0] - (*pt).x);
+  val = max(val, (*pt).y - bounds[4]);
+  val = max(val, bounds[1] - (*pt).y);
+  val = max(val, (*pt).z - bounds[5]);
+  val = max(val, bounds[2] - (*pt).z);
+  return val;
+}
+float f_sphere(global uchar* ptr,
+               float3* pt)
+{
+  CAST_TYPE(i_sphere, sphere, ptr);
+  global float* center = sphere->center;
+  float radius = sphere->radius;
+  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+}
+float f_gyroid(global uchar* ptr,
+               float3* pt)
+{
+  CAST_TYPE(i_gyroid, gyroid, ptr);
+  float scale = gyroid->scale;
+  float thick = gyroid->thickness;
+  float sx, cx, sy, cy, sz, cz;
+  sx = sincos((*pt).x * scale, &cx);
+  sy = sincos((*pt).y * scale, &cy);
+  sz = sincos((*pt).z * scale, &cz);
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
+}
+float f_entity(global uchar* ptr,
+               uchar type,
+               float3* pt)
+{
+  switch (type){
+  case ENT_TYPE_BOX: return f_box(ptr, pt);
+  case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
+  case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
+  default: return 1.0f;
+  }
+}
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
 #define GRADIENT(func, pt, norm){                    \
@@ -97,29 +108,26 @@ uint colorToInt(float3 rgb)
   color |= ((uint)(rgb.z * 255)) << 16;
   return color;
 }
-uint sphere_trace(global uchar* bytes,
-                  global uint* offsets,
-                  global uchar* types,
-                  float3 pt,
-                  float3 dir,
-                  float* dTotal,
-                  int iters,
-                  float tolerance)
+uint sphere_trace_simple(global uchar* packed,
+                         global uint* offsets,
+                         uchar type,
+                         float3 pt,
+                         float3 dir,
+                         int iters,
+                         float tolerance)
 {
   dir = normalize(dir);
-  *dTotal = 0.0f;
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
-    float d = 0.0; //f_entity(entities, index, &pt);
+    float d = f_entity(packed, type, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
-      /* GRADIENT(f_entity(entities, index, &pt), pt, norm); */
+      GRADIENT(f_entity(packed, type, &pt), pt, norm);
       found = true;
       break;
     }
     pt += dir * d;
-    *dTotal += d;
     if (i > 5 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
@@ -128,9 +136,7 @@ uint sphere_trace(global uchar* bytes,
   float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d;
   return found ? colorToInt(color) : BACKGROUND_COLOR;
 }
-void perspective_project(float camDist,
-                         float camTheta,
-                         float camPhi,
+void perspective_project(float3 camPos,
                          float3 camTarget,
                          uint2 coord,
                          uint2 dims,
@@ -138,9 +144,9 @@ void perspective_project(float camDist,
                          float3* dir)
 {
   float st, ct, sp, cp;
-  st = sincos(camTheta, &ct);
-  sp = sincos(camPhi, &cp);
-  *dir = -(float3)(camDist * cp * ct, camDist * cp * st, camDist * sp);
+  st = sincos(camPos.y, &ct);
+  sp = sincos(camPos.z, &cp);
+  *dir = -(float3)(camPos.x * cp * ct, camPos.x * cp * st, camPos.x * sp);
   *pos = camTarget - (*dir);
   *dir = normalize(*dir);
   /* float3 center = pos - (dir * 0.57735026f); */
@@ -153,33 +159,36 @@ void perspective_project(float camDist,
      y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
   *dir = normalize((*pos) - center);
 }
-float f_capsule(float3* a, float3* b, float thick, float3* pt)
-{
-  float3 ln = *b - *a;
-  float r = min(1.0f, max(0.0f, dot(ln, *pt - *a) / dot(ln, ln)));
-  return length((*a + ln * r) - *pt) - thick;
-}
-float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
-{
-  float a = length(((*bmin + *bmax) * 0.5f) - *pt) - radius;
-  float b = f_capsule(bmin, bmax, radius * 0.5f, pt);
-  return min(a, b);
-}
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* packed,
                     global uchar* types,
                     global uchar* offsets,
+                    uint nEntities,
                     global uint* steps,
+                    uint nSteps,
                     float3 camPos, // Camera position in spherical coordinates
                     float3 camTarget)
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
   float3 pos, dir;
-  perspective_project(camPos.x, camPos.y, camPos.z, camTarget,
+  perspective_project(camPos, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  /* pBuffer[i] = trace_one(pos, dir, entities, 0, nEntities); */
+  int iters = 500;
+  float tolerance = 0.00001f;
+  uint color = BACKGROUND_COLOR;
+  if (nSteps == 0){
+    float dTotal = 0;
+    uchar type = *types;
+    color = sphere_trace_simple(packed, offsets, type,
+                                pos, dir, iters, tolerance);
+  }
+  else{
+    // nothing.
+  }
+  
+  pBuffer[i] = color;
 }
 	)";
 

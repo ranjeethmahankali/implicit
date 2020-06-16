@@ -10,7 +10,7 @@ entities::box3::box3(float xmin, float ymin, float zmin, float xmax, float ymax,
 
 uint8_t entities::box3::type() const
 {
-    return ENT_TYPE_BOX;
+    return (uint8_t)ENT_TYPE_BOX;
 }
 
 size_t entities::box3::num_render_bytes() const

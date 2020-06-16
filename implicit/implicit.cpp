@@ -27,13 +27,15 @@ static cl::Context s_context;
 static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_float3, cl_float3>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>* s_kernel;
 
 static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
 static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
 static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
+static size_t s_numCurrentEntities = 0;
+static size_t s_opStepCount = 0;
 
 static size_t s_globalMemSize = 0;
 static size_t s_maxBufSize = 0;
@@ -175,7 +177,7 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_float3, cl_float3>(s_program, "k_trace");
+        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>(s_program, "k_trace");
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
         s_maxBufSize = s_globalMemSize / 32;
     }
@@ -220,11 +222,14 @@ static void init_buffers()
 template <typename T>
 void write_buf(cl::Buffer& buffer, T* data, size_t size)
 {
-    if (size * sizeof(T) > s_maxBufSize)
+    size_t nBytes = size * sizeof(T);
+    if (nBytes > s_maxBufSize)
     {
         std::cerr << "Device buffer overflow... terminating application" << std::endl;
         exit(1);
     }
+    if (nBytes == 0) return;
+
     s_queue.enqueueWriteBuffer(buffer, CL_TRUE, 0, size * sizeof(T), data);
 };
 
@@ -235,20 +240,26 @@ void show_entity(const entities::entity& entity)
         size_t nBytes = 0, nEntities = 0, nSteps = 0;
         entity.render_data_size(nBytes, nEntities, nSteps);
         std::vector<uint8_t> bytes(nBytes);
-        uint8_t* bptr = bytes.data();
         std::vector<uint32_t> offsets(nEntities);
-        uint32_t* optr = offsets.data();
         std::vector<uint8_t> types(nEntities);
-        uint8_t* tptr = types.data();
         std::vector<op_step> steps(nSteps);
-        op_step* sptr = steps.data();
-        size_t ei = 0, co = 0;
-        entity.copy_render_data(bptr, optr, tptr, sptr, ei, co);
+
+        // Copy the render data into these buffers.
+        {
+            uint8_t* bptr = bytes.data();
+            uint32_t* optr = offsets.data();
+            uint8_t* tptr = types.data();
+            op_step* sptr = steps.data();
+            size_t ei = 0, co = 0;
+            entity.copy_render_data(bptr, optr, tptr, sptr, ei, co);
+        }
         
-        write_buf(s_packedBuf, bptr, nBytes);
-        write_buf(s_typeBuf, tptr, nEntities);
-        write_buf(s_offsetBuf, optr, nEntities);
-        write_buf(s_opStepBuf, sptr, nSteps);
+        write_buf(s_packedBuf, bytes.data(), nBytes);
+        write_buf(s_typeBuf, types.data(), nEntities);
+        write_buf(s_offsetBuf, offsets.data(), nEntities);
+        write_buf(s_opStepBuf, steps.data(), nSteps);
+        s_numCurrentEntities = nEntities;
+        s_opStepCount = nSteps;
     }
     CATCH_EXIT_CL_ERR;
 }
@@ -269,7 +280,9 @@ static void render()
                 s_packedBuf,
                 s_typeBuf,
                 s_offsetBuf,
+                (cl_uint)s_numCurrentEntities,
                 s_opStepBuf,
+                (cl_uint)s_opStepCount,
                 { camera::distance(), camera::theta(), camera::phi() },
                 { ctarget.x, ctarget.y, ctarget.z });
         }
@@ -286,7 +299,10 @@ int main()
     init_ocl();
     init_buffers();
 
-    entities::box3 b(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
+    //entities::box3 e(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
+    //entities::gyroid e(2.0f, 0.2f);
+    entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
+    show_entity(e);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))

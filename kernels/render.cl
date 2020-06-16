@@ -1,8 +1,6 @@
 #include "raytrace.h"
 
-void perspective_project(float camDist,
-                         float camTheta,
-                         float camPhi,
+void perspective_project(float3 camPos,
                          float3 camTarget,
                          uint2 coord,
                          uint2 dims,
@@ -10,10 +8,10 @@ void perspective_project(float camDist,
                          float3* dir)
 {
   float st, ct, sp, cp;
-  st = sincos(camTheta, &ct);
-  sp = sincos(camPhi, &cp);
+  st = sincos(camPos.y, &ct);
+  sp = sincos(camPos.z, &cp);
 
-  *dir = -(float3)(camDist * cp * ct, camDist * cp * st, camDist * sp);
+  *dir = -(float3)(camPos.x * cp * ct, camPos.x * cp * st, camPos.x * sp);
   *pos = camTarget - (*dir);
   *dir = normalize(*dir);
 
@@ -29,33 +27,35 @@ void perspective_project(float camDist,
   *dir = normalize((*pos) - center);
 }
 
-float f_capsule(float3* a, float3* b, float thick, float3* pt)
-{
-  float3 ln = *b - *a;
-  float r = min(1.0f, max(0.0f, dot(ln, *pt - *a) / dot(ln, ln)));
-  return length((*a + ln * r) - *pt) - thick;
-}
-
-float f_testUnion(float3* bmin, float3* bmax, float radius, float3* pt)
-{
-  float a = length(((*bmin + *bmax) * 0.5f) - *pt) - radius;
-  float b = f_capsule(bmin, bmax, radius * 0.5f, pt);
-  return min(a, b);
-}
-
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* packed,
                     global uchar* types,
                     global uchar* offsets,
+                    uint nEntities,
                     global uint* steps,
+                    uint nSteps,
                     float3 camPos, // Camera position in spherical coordinates
                     float3 camTarget)
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
   float3 pos, dir;
-  perspective_project(camPos.x, camPos.y, camPos.z, camTarget,
+  perspective_project(camPos, camTarget,
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
-  /* pBuffer[i] = trace_one(pos, dir, entities, 0, nEntities); */
+
+  int iters = 500;
+  float tolerance = 0.00001f;
+  uint color = BACKGROUND_COLOR;
+  if (nSteps == 0){
+    float dTotal = 0;
+    uchar type = *types;
+    color = sphere_trace_simple(packed, offsets, type,
+                                pos, dir, iters, tolerance);
+  }
+  else{
+    // nothing.
+  }
+  
+  pBuffer[i] = color;
 }
