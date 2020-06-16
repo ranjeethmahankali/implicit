@@ -76,7 +76,7 @@ float f_gyroid(global uchar* ptr,
   sx = sincos((*pt).x * scale, &cx);
   sy = sincos((*pt).y * scale, &cy);
   sz = sincos((*pt).z * scale, &cz);
-  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 5.0f;
 }
 float f_simple(global uchar* ptr,
                uchar type,
@@ -236,7 +236,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
   int iters = 500;
-  float tolerance = 0.0001f;
+  float tolerance = 0.00001f;
   float dTotal = 0;
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
                             nEntities, steps, nSteps, pos, dir,

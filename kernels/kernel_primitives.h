@@ -45,7 +45,7 @@ float f_gyroid(global uchar* ptr,
   sx = sincos((*pt).x * scale, &cx);
   sy = sincos((*pt).y * scale, &cy);
   sz = sincos((*pt).z * scale, &cz);
-  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 5.0f;
 }
 
 float f_simple(global uchar* ptr,

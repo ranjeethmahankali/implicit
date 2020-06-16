@@ -47,7 +47,7 @@ static size_t s_maxBufSize = 0;
 static size_t s_maxLocalBufSize = 0;
 static size_t s_workGroupSize = 0;
 
-constexpr static size_t MAX_ENTITY_COUNT = 128;
+constexpr static size_t MAX_ENTITY_COUNT = 64;
 
 static void init_ogl()
 {

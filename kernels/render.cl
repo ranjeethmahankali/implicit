@@ -46,7 +46,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint i = coord.x + (coord.y * get_global_size(0));
 
   int iters = 500;
-  float tolerance = 0.0001f;
+  float tolerance = 0.00001f;
 
   float dTotal = 0;
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
