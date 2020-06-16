@@ -22,12 +22,12 @@ size_t entities::box3::num_render_bytes() const
 
 void entities::box3::write_render_bytes(uint8_t*& bytes) const
 {
-    static_assert(sizeof(min) == 3 * sizeof(float));
-    static_assert(sizeof(max) == 3 * sizeof(float));
-    std::memcpy(bytes, &min, sizeof(min));
-    bytes += sizeof(min);
-    std::memcpy(bytes, &max, sizeof(max));
-    bytes += sizeof(max);
+    i_box ient = {
+        min.x, min.y, min.z,
+        max.x, max.y, max.z
+    };
+    std::memcpy(bytes, &ient, sizeof(ient));
+    bytes += sizeof(ient);
 }
 
 bool entities::simple_entity::simple() const
@@ -50,6 +50,11 @@ void entities::simple_entity::copy_render_data(
     write_render_bytes(bytes);
     *(types++) = type();
     entityIndex++;
+}
+
+entities::csg_entity::csg_entity(entity* l, entity* r, op_type o)
+    : left(l), right(r), op(o)
+{
 }
 
 bool entities::csg_entity::simple() const
@@ -104,10 +109,12 @@ size_t entities::sphere3::num_render_bytes() const
 
 void entities::sphere3::write_render_bytes(uint8_t*& bytes) const
 {
-    static_assert(sizeof(center) == 3 * sizeof(float));
-    std::memcpy(bytes, &center, sizeof(center));
-    bytes += sizeof(center);
-    std::memcpy(bytes, &radius, sizeof(radius));
+    i_sphere ient = {
+        { center.x, center.y, center.z },
+        radius
+    };
+    std::memcpy(bytes, &ient, sizeof(ient));
+    bytes += sizeof(ient);
 }
 
 entities::gyroid::gyroid(float sc, float th)
@@ -129,10 +136,9 @@ size_t entities::gyroid::num_render_bytes() const
 
 void entities::gyroid::write_render_bytes(uint8_t*& bytes) const
 {
-    std::memcpy(bytes, &scale, sizeof(scale));
-    bytes += sizeof(scale);
-    std::memcpy(bytes, &thickness, sizeof(thickness));
-    bytes += sizeof(thickness);
+    i_gyroid ient = { scale, thickness };
+    std::memcpy(bytes, &ient, sizeof(ient));
+    bytes += sizeof(ient);
 }
 
 #pragma warning(pop)

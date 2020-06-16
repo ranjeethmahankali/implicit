@@ -42,6 +42,8 @@ namespace entities
         entity* right;
         op_type op;
 
+        csg_entity(entity* l, entity* r, op_type op);
+
         virtual bool simple() const;
         virtual uint8_t type() const;
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;

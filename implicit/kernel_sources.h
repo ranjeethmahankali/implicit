@@ -105,8 +105,7 @@ float f_entity(global uchar* packed,
                uint nEntities,
                global op_step* steps,
                uint nSteps,
-               float3* pt,
-               uint nBlocks)
+               float3* pt)
 {
   if (nSteps == 0){
     if (nEntities > 0)
@@ -114,12 +113,13 @@ float f_entity(global uchar* packed,
     else
       return 1.0f;
   }
+  uint bsize = get_local_size(0);
   uint bi = get_local_id(0);
   // Compute the values of simple entities.
   for (uint ei = 0; ei < nEntities; ei++){
-    valBuf[ei * nBlocks + bi] = f_simple(packed + offsets[ei], types[ei], pt);
+    valBuf[ei * bsize + bi] = f_simple(packed + offsets[ei], types[ei], pt);
   }
-  float regL, regR;
+  float regL = 1.0f, regR;
   // Perform the csg operations.
   for (uint si = 0; si < nSteps; si++){
     uint ls = steps[si].left_src;
@@ -130,21 +130,21 @@ float f_entity(global uchar* packed,
         (ds != REG_L && ds != REG_R)){
       return 1.0f;
     }
-    float l = ls == REG_L ? regL : valBuf[ls * nBlocks + bi];
-    float r = rs == REG_R ? regR : valBuf[rs * nBlocks + bi];
+    float l = ls == REG_L ? regL : valBuf[ls * bsize + bi];
+    float r = rs == REG_R ? regR : valBuf[rs * bsize + bi];
     float v = apply_op(steps[si].type, l, r);
-    if (ds == REG_L)
-      regL = v;
-    else if (ds == REG_R)
+    
+    if (ds == REG_R)
       regR = v;
+    else
+      regL = v;
   }
   
-  return 1.0f;
+  return regL;
 }
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
-#define GRADIENT(func, pt, norm){                    \
-    float v0 = func;                                 \
+#define GRADIENT(func, pt, norm, v0){                \
     pt.x += DX; float vx = func; pt.x -= DX;         \
     pt.y += DX; float vy = func; pt.y -= DX;         \
     pt.z += DX; float vz = func; pt.z -= DX;         \
@@ -170,20 +170,19 @@ uint sphere_trace(global uchar* packed,
                   float3 pt,
                   float3 dir,
                   int iters,
-                  float tolerance,
-                  uint nBlocks)
+                  float tolerance)
 {
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
     float d = f_entity(packed, offsets, types, valBuf,
-                       nEntities, steps, nSteps, &pt, nBlocks);
+                       nEntities, steps, nSteps, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
       GRADIENT(f_entity(packed, offsets, types, valBuf,
-                        nEntities, steps, nSteps, &pt, nBlocks),
-               pt, norm);
+                        nEntities, steps, nSteps, &pt),
+               pt, norm, d);
       found = true;
       break;
     }
@@ -215,8 +214,8 @@ void perspective_project(float3 camPos,
   float3 x = normalize(cross(*dir, (float3)(0, 0, 1)));
   float3 y = normalize(cross(x, *dir));
   *pos += 1.5f *
-    (x * (((float)coord.x - (float)dims.x / 2.0f) / (float)(dims.x / 2)) +
-     y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
+    (x * (((float)coord.x - (float)dims.x / 2.0f) / ((float)dims.x / 2.0f)) +
+     y * (((float)coord.y - (float)dims.y / 2.0f) / ((float)dims.x / 2.0f)));
   *dir = normalize((*pos) - center);
 }
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
@@ -237,12 +236,11 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                       coord, dims, &pos, &dir);
   uint i = coord.x + (coord.y * get_global_size(0));
   int iters = 500;
-  float tolerance = 0.00001f;
-  uint nBlocks = (dims.x * dims.y) / (get_local_size(0) * get_local_size(1));
+  float tolerance = 0.0001f;
   float dTotal = 0;
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
                             nEntities, steps, nSteps, pos, dir,
-                            iters, tolerance, nBlocks);
+                            iters, tolerance);
 }
 	)";
 

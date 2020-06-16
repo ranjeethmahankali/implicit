@@ -21,8 +21,8 @@ void perspective_project(float3 camPos,
   float3 x = normalize(cross(*dir, (float3)(0, 0, 1)));
   float3 y = normalize(cross(x, *dir));
   *pos += 1.5f *
-    (x * (((float)coord.x - (float)dims.x / 2.0f) / (float)(dims.x / 2)) +
-     y * (((float)coord.y - (float)dims.y / 2.0f) / (float)(dims.x / 2)));
+    (x * (((float)coord.x - (float)dims.x / 2.0f) / ((float)dims.x / 2.0f)) +
+     y * (((float)coord.y - (float)dims.y / 2.0f) / ((float)dims.x / 2.0f)));
 
   *dir = normalize((*pos) - center);
 }
@@ -46,11 +46,10 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint i = coord.x + (coord.y * get_global_size(0));
 
   int iters = 500;
-  float tolerance = 0.00001f;
-  uint nBlocks = (dims.x * dims.y) / (get_local_size(0) * get_local_size(1));
+  float tolerance = 0.0001f;
 
   float dTotal = 0;
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
                             nEntities, steps, nSteps, pos, dir,
-                            iters, tolerance, nBlocks);
+                            iters, tolerance);
 }

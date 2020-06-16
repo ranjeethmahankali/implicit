@@ -6,8 +6,7 @@
 
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
-#define GRADIENT(func, pt, norm){                    \
-    float v0 = func;                                 \
+#define GRADIENT(func, pt, norm, v0){                \
     pt.x += DX; float vx = func; pt.x -= DX;         \
     pt.y += DX; float vy = func; pt.y -= DX;         \
     pt.z += DX; float vz = func; pt.z -= DX;         \
@@ -35,20 +34,19 @@ uint sphere_trace(global uchar* packed,
                   float3 pt,
                   float3 dir,
                   int iters,
-                  float tolerance,
-                  uint nBlocks)
+                  float tolerance)
 {
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
     float d = f_entity(packed, offsets, types, valBuf,
-                       nEntities, steps, nSteps, &pt, nBlocks);
+                       nEntities, steps, nSteps, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
       GRADIENT(f_entity(packed, offsets, types, valBuf,
-                        nEntities, steps, nSteps, &pt, nBlocks),
-               pt, norm);
+                        nEntities, steps, nSteps, &pt),
+               pt, norm, d);
       found = true;
       break;
     }

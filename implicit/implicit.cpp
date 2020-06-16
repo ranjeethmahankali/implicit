@@ -23,6 +23,7 @@ exit(err.err());\
 }
 
 static constexpr uint32_t WIN_W = 960, WIN_H = 640;
+//static constexpr uint32_t WIN_W = 1, WIN_H = 1;
 static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
 static cl::Context s_context;
@@ -196,8 +197,10 @@ static void init_ocl()
         s_localMemSize = devices[0].getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
         s_maxLocalBufSize = s_localMemSize / 2;
         s_valueBuf = cl::Local(s_maxLocalBufSize);
-        s_workGroupSize = std::min(devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
-            (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * MAX_ENTITY_COUNT)));
+        s_workGroupSize =
+            std::min((size_t)WIN_W, std::min(
+                devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
+                (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * MAX_ENTITY_COUNT))));
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -319,9 +322,13 @@ int main()
     init_buffers();
 
     //entities::box3 e(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
-    entities::gyroid e(2.0f, 0.2f);
+    entities::box3 e1(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
+    entities::gyroid e2(2.0f, 0.2f);
+    entities::sphere3 e3(-5.0f, 5.0f, 0.0f, 3.0f);
+    entities::csg_entity ec(&e1, &e3, op_type::OP_BOOL_UNION);
+    entities::csg_entity ent(&ec, &e2, op_type::OP_BOOL_INTERSECTION);
     //entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
-    show_entity(e);
+    show_entity(ent);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
