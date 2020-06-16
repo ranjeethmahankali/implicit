@@ -31,8 +31,9 @@ typedef struct PACKED
 typedef enum
 {
     OP_NONE = 0,
-    OP_BOOL_UNION = 1,
-    OP_BOOL_INTERSECTION = 2,
+    OP_UNION = 1,
+    OP_INTERSECTION = 2,
+    OP_SUBTRACTION = 3,
 } op_type;
 typedef struct PACKED
 {
@@ -93,8 +94,9 @@ float apply_op(op_type op, float a, float b)
 {
   switch(op){
   case OP_NONE: return a;
-  case OP_BOOL_UNION: return min(a, b);
-  case OP_BOOL_INTERSECTION: return max(a, b);
+  case OP_UNION: return min(a, b);
+  case OP_INTERSECTION: return max(a, b);
+  case OP_SUBTRACTION: return max(a, -b);
   default: return a;
   }
 }

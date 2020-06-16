@@ -26,8 +26,9 @@ typedef struct PACKED
 typedef enum
 {
     OP_NONE = 0,
-    OP_BOOL_UNION = 1,
-    OP_BOOL_INTERSECTION = 2,
+    OP_UNION = 1,
+    OP_INTERSECTION = 2,
+    OP_SUBTRACTION = 3,
 } op_type;
 
 typedef struct PACKED

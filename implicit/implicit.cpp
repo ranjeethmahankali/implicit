@@ -325,8 +325,10 @@ int main()
     entities::box3 e1(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
     entities::gyroid e2(2.0f, 0.2f);
     entities::sphere3 e3(-5.0f, 5.0f, 0.0f, 3.0f);
-    entities::csg_entity ec(&e1, &e3, op_type::OP_BOOL_UNION);
-    entities::csg_entity ent(&ec, &e2, op_type::OP_BOOL_INTERSECTION);
+    entities::sphere3 e4(5.0f, -5.0f, 0.0f, 3.0f);
+    entities::csg_entity ec(&e1, &e3, op_type::OP_UNION);
+    entities::csg_entity ec2(&ec, &e2, op_type::OP_INTERSECTION);
+    entities::csg_entity ent(&ec2, &e4, op_type::OP_SUBTRACTION);
     //entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
     show_entity(ent);
 

@@ -64,8 +64,9 @@ float apply_op(op_type op, float a, float b)
 {
   switch(op){
   case OP_NONE: return a;
-  case OP_BOOL_UNION: return min(a, b);
-  case OP_BOOL_INTERSECTION: return max(a, b);
+  case OP_UNION: return min(a, b);
+  case OP_INTERSECTION: return max(a, b);
+  case OP_SUBTRACTION: return max(a, -b);
   default: return a;
   }
 }
