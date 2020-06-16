@@ -31,8 +31,9 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* packed,
                     global uchar* types,
                     global uchar* offsets,
+                    local float* valBuf,
                     uint nEntities,
-                    global uint* steps,
+                    global op_step* steps,
                     uint nSteps,
                     float3 camPos, // Camera position in spherical coordinates
                     float3 camTarget)
@@ -46,16 +47,10 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
 
   int iters = 500;
   float tolerance = 0.00001f;
-  uint color = BACKGROUND_COLOR;
-  if (nSteps == 0){
-    float dTotal = 0;
-    uchar type = *types;
-    color = sphere_trace_simple(packed, offsets, type,
-                                pos, dir, iters, tolerance);
-  }
-  else{
-    // nothing.
-  }
-  
-  pBuffer[i] = color;
+  uint nBlocks = (dims.x * dims.y) / (get_local_size(0) * get_local_size(1));
+
+  float dTotal = 0;
+  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
+                            nEntities, steps, nSteps, pos, dir,
+                            iters, tolerance, nBlocks);
 }

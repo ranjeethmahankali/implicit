@@ -48,7 +48,7 @@ float f_gyroid(global uchar* ptr,
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
 
-float f_entity(global uchar* ptr,
+float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
 {
@@ -58,4 +58,60 @@ float f_entity(global uchar* ptr,
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
   default: return 1.0f;
   }
+}
+
+float apply_op(op_type op, float a, float b)
+{
+  switch(op){
+  case OP_NONE: return a;
+  case OP_BOOL_UNION: return min(a, b);
+  case OP_BOOL_INTERSECTION: return max(a, b);
+  default: return a;
+  }
+}
+
+float f_entity(global uchar* packed,
+               global uint* offsets,
+               global uchar* types,
+               local float* valBuf,
+               uint nEntities,
+               global op_step* steps,
+               uint nSteps,
+               float3* pt,
+               uint nBlocks)
+{
+  if (nSteps == 0){
+    if (nEntities > 0)
+      return f_simple(packed, *types, pt);
+    else
+      return 1.0f;
+  }
+
+  uint bi = get_local_id(0);
+  // Compute the values of simple entities.
+  for (uint ei = 0; ei < nEntities; ei++){
+    valBuf[ei * nBlocks + bi] = f_simple(packed + offsets[ei], types[ei], pt);
+  }
+
+  float regL, regR;
+  // Perform the csg operations.
+  for (uint si = 0; si < nSteps; si++){
+    uint ls = steps[si].left_src;
+    uint rs = steps[si].right_src;
+    uint ds = steps[si].dest;
+    if ((ls != REG_L && ls >= nEntities) ||
+        (rs != REG_R && rs >= nEntities) ||
+        (ds != REG_L && ds != REG_R)){
+      return 1.0f;
+    }
+    float l = ls == REG_L ? regL : valBuf[ls * nBlocks + bi];
+    float r = rs == REG_R ? regR : valBuf[rs * nBlocks + bi];
+    float v = apply_op(steps[si].type, l, r);
+    if (ds == REG_L)
+      regL = v;
+    else if (ds == REG_R)
+      regR = v;
+  }
+  
+  return 1.0f;
 }

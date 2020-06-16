@@ -30,9 +30,9 @@ typedef struct PACKED
 #define ENT_TYPE_CSG 0
 typedef enum
 {
-    none = 0,
-    bool_union = 1,
-    bool_intersection = 2,
+    OP_NONE = 0,
+    OP_BOOL_UNION = 1,
+    OP_BOOL_INTERSECTION = 2,
 } op_type;
 typedef struct PACKED
 {
@@ -78,7 +78,7 @@ float f_gyroid(global uchar* ptr,
   sz = sincos((*pt).z * scale, &cz);
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
-float f_entity(global uchar* ptr,
+float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
 {
@@ -88,6 +88,58 @@ float f_entity(global uchar* ptr,
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
   default: return 1.0f;
   }
+}
+float apply_op(op_type op, float a, float b)
+{
+  switch(op){
+  case OP_NONE: return a;
+  case OP_BOOL_UNION: return min(a, b);
+  case OP_BOOL_INTERSECTION: return max(a, b);
+  default: return a;
+  }
+}
+float f_entity(global uchar* packed,
+               global uint* offsets,
+               global uchar* types,
+               local float* valBuf,
+               uint nEntities,
+               global op_step* steps,
+               uint nSteps,
+               float3* pt,
+               uint nBlocks)
+{
+  if (nSteps == 0){
+    if (nEntities > 0)
+      return f_simple(packed, *types, pt);
+    else
+      return 1.0f;
+  }
+  uint bi = get_local_id(0);
+  // Compute the values of simple entities.
+  for (uint ei = 0; ei < nEntities; ei++){
+    valBuf[ei * nBlocks + bi] = f_simple(packed + offsets[ei], types[ei], pt);
+  }
+  float regL, regR;
+  // Perform the csg operations.
+  for (uint si = 0; si < nSteps; si++){
+    uint ls = steps[si].left_src;
+    uint rs = steps[si].right_src;
+    uint ds = steps[si].dest;
+    if ((ls != REG_L && ls >= nEntities) ||
+        (rs != REG_R && rs >= nEntities) ||
+        (ds != REG_L && ds != REG_R)){
+      return 1.0f;
+    }
+    float l = ls == REG_L ? regL : valBuf[ls * nBlocks + bi];
+    float r = rs == REG_R ? regR : valBuf[rs * nBlocks + bi];
+    float v = apply_op(steps[si].type, l, r);
+    if (ds == REG_L)
+      regL = v;
+    else if (ds == REG_R)
+      regR = v;
+  }
+  
+  return 1.0f;
 }
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
@@ -108,22 +160,30 @@ uint colorToInt(float3 rgb)
   color |= ((uint)(rgb.z * 255)) << 16;
   return color;
 }
-uint sphere_trace_simple(global uchar* packed,
-                         global uint* offsets,
-                         uchar type,
-                         float3 pt,
-                         float3 dir,
-                         int iters,
-                         float tolerance)
+uint sphere_trace(global uchar* packed,
+                  global uint* offsets,
+                  global uchar* types,
+                  local float* valBuf,
+                  uint nEntities,
+                  global op_step* steps,
+                  uint nSteps,
+                  float3 pt,
+                  float3 dir,
+                  int iters,
+                  float tolerance,
+                  uint nBlocks)
 {
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
-    float d = f_entity(packed, type, &pt);
+    float d = f_entity(packed, offsets, types, valBuf,
+                       nEntities, steps, nSteps, &pt, nBlocks);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(packed, type, &pt), pt, norm);
+      GRADIENT(f_entity(packed, offsets, types, valBuf,
+                        nEntities, steps, nSteps, &pt, nBlocks),
+               pt, norm);
       found = true;
       break;
     }
@@ -163,8 +223,9 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* packed,
                     global uchar* types,
                     global uchar* offsets,
+                    local float* valBuf,
                     uint nEntities,
-                    global uint* steps,
+                    global op_step* steps,
                     uint nSteps,
                     float3 camPos, // Camera position in spherical coordinates
                     float3 camTarget)
@@ -177,18 +238,11 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint i = coord.x + (coord.y * get_global_size(0));
   int iters = 500;
   float tolerance = 0.00001f;
-  uint color = BACKGROUND_COLOR;
-  if (nSteps == 0){
-    float dTotal = 0;
-    uchar type = *types;
-    color = sphere_trace_simple(packed, offsets, type,
-                                pos, dir, iters, tolerance);
-  }
-  else{
-    // nothing.
-  }
-  
-  pBuffer[i] = color;
+  uint nBlocks = (dims.x * dims.y) / (get_local_size(0) * get_local_size(1));
+  float dTotal = 0;
+  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
+                            nEntities, steps, nSteps, pos, dir,
+                            iters, tolerance, nBlocks);
 }
 	)";
 

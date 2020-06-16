@@ -25,22 +25,30 @@ uint colorToInt(float3 rgb)
   return color;
 }
 
-uint sphere_trace_simple(global uchar* packed,
-                         global uint* offsets,
-                         uchar type,
-                         float3 pt,
-                         float3 dir,
-                         int iters,
-                         float tolerance)
+uint sphere_trace(global uchar* packed,
+                  global uint* offsets,
+                  global uchar* types,
+                  local float* valBuf,
+                  uint nEntities,
+                  global op_step* steps,
+                  uint nSteps,
+                  float3 pt,
+                  float3 dir,
+                  int iters,
+                  float tolerance,
+                  uint nBlocks)
 {
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   for (int i = 0; i < iters; i++){
-    float d = f_entity(packed, type, &pt);
+    float d = f_entity(packed, offsets, types, valBuf,
+                       nEntities, steps, nSteps, &pt, nBlocks);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(packed, type, &pt), pt, norm);
+      GRADIENT(f_entity(packed, offsets, types, valBuf,
+                        nEntities, steps, nSteps, &pt, nBlocks),
+               pt, norm);
       found = true;
       break;
     }

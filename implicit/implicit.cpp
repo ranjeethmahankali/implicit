@@ -1,6 +1,8 @@
+#define NOMINMAX
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <algorithm>
 #include "camera.h"
 
 #include <assert.h>
@@ -27,18 +29,24 @@ static cl::Context s_context;
 static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>* s_kernel;
 
 static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
 static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
 static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
+static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
 static size_t s_numCurrentEntities = 0;
 static size_t s_opStepCount = 0;
 
 static size_t s_globalMemSize = 0;
+static size_t s_localMemSize = 0;
 static size_t s_maxBufSize = 0;
+static size_t s_maxLocalBufSize = 0;
+static size_t s_workGroupSize = 0;
+
+constexpr static size_t MAX_ENTITY_COUNT = 128;
 
 static void init_ogl()
 {
@@ -177,9 +185,19 @@ static void init_ocl()
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
         s_program = cl::Program(s_context, cl_kernel_sources::render, true);
-        s_kernel = new cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>(s_program, "k_trace");
+
+        s_kernel = new cl::make_kernel<
+            cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
+            cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+        >(s_program, "k_trace");
+
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
         s_maxBufSize = s_globalMemSize / 32;
+        s_localMemSize = devices[0].getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
+        s_maxLocalBufSize = s_localMemSize / 2;
+        s_valueBuf = cl::Local(s_maxLocalBufSize);
+        s_workGroupSize = std::min(devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
+            (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * MAX_ENTITY_COUNT)));
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -275,11 +293,12 @@ static void render()
         if (s_kernel)
         {
             glm::vec3 ctarget = camera::target();
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H)),
+            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64)),
                 s_pBuffer,
                 s_packedBuf,
                 s_typeBuf,
                 s_offsetBuf,
+                s_valueBuf,
                 (cl_uint)s_numCurrentEntities,
                 s_opStepBuf,
                 (cl_uint)s_opStepCount,
@@ -300,8 +319,8 @@ int main()
     init_buffers();
 
     //entities::box3 e(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
-    //entities::gyroid e(2.0f, 0.2f);
-    entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
+    entities::gyroid e(2.0f, 0.2f);
+    //entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
     show_entity(e);
 
     /* Loop until the user closes the window */
