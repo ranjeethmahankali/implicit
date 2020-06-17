@@ -55,7 +55,12 @@ uint sphere_trace(global uchar* packed,
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
   }
-  float d = dot(normalize(norm), -dir);
-  float3 color = (float3)(0.2f,0.2f,0.2f)*(1.0f-d) + (float3)(0.9f,0.9f,0.9f)*d;
-  return found ? colorToInt(color) : BACKGROUND_COLOR;
+  
+  if (!found) return BACKGROUND_COLOR;
+  norm = normalize(norm);
+  float d = dot(norm, -dir);
+  float cd = 0.2f;
+  float cl = 0.9f;
+  float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
+  return colorToInt(color1);
 }
