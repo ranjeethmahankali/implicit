@@ -321,11 +321,23 @@ int main()
     init_ocl();
     init_buffers();
 
-    entities::gyroid g(4.0f, 0.5f);
-    entities::sphere3 s1(0.0f, 0.0f, 0.0f, 4.1f);
-    entities::sphere3 s2(0.0f, 0.0f, 0.0f, 4.0f);
-    entities::csg_entity c1(&s1, &g, op_type::OP_INTERSECTION);
-    entities::csg_entity ent(&s2, &c1, op_type::OP_UNION);
+    float hr1 = 2.3f, hr2 = 2.2f;
+    float a1 = 2.05f, a2 = 2.0f;
+    entities::sphere3 fs11(hr1, 0.0f, 0.0f, hr1 / 1.5f);
+    entities::sphere3 fs12(hr2, 0.0f, 0.0f, hr2 / 1.5f);
+    entities::box3 s1(-a1, -a1, -a1, a1, a1, a1);
+    entities::box3 s2(-a2, -a2, -a2, a2, a2, a2);
+    entities::gyroid g(6.0f, 0.2f);
+    
+    /*entities::csg_entity outer(&s1, &fs12, op_type::OP_SUBTRACTION);
+    entities::csg_entity inner(&s2, &fs11, op_type::OP_SUBTRACTION);*/
+    /*entities::csg_entity outer(&s1, &fs12, OP_SUBTRACTION);
+    entities::csg_entity inner(&s2, &fs11, OP_SUBTRACTION);*/
+    entities::box3 outer(-a1, -a1, -a1, a1, a1, a1);
+    entities::box3 inner(-a2, -a2, -a2, a2, a2, a2);
+
+    entities::csg_entity c1(&outer, &g, op_type::OP_INTERSECTION);
+    entities::csg_entity ent(&inner, &c1, op_type::OP_UNION);
     show_entity(ent);
 
     /* Loop until the user closes the window */
