@@ -32,7 +32,9 @@ float f_sphere(global uchar* ptr,
   CAST_TYPE(i_sphere, sphere, ptr);
   global float* center = sphere->center;
   float radius = sphere->radius;
-  return length(*pt - (float3)(center[0], center[1], center[2])) - fabs(radius);
+  return (length(*pt -
+                 (float3)(center[0], center[1], center[2])) -
+          fabs(radius)) / 2.0f;
 }
 
 float f_gyroid(global uchar* ptr,
@@ -45,7 +47,7 @@ float f_gyroid(global uchar* ptr,
   sx = sincos((*pt).x * scale, &cx);
   sy = sincos((*pt).y * scale, &cy);
   sz = sincos((*pt).z * scale, &cz);
-  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 5.0f;
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
 }
 
 float f_simple(global uchar* ptr,

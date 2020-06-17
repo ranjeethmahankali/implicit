@@ -321,15 +321,11 @@ int main()
     init_ocl();
     init_buffers();
 
-    //entities::box3 e(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
-    entities::box3 e1(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
-    entities::gyroid e2(2.0f, 0.2f);
-    entities::sphere3 e3(-5.0f, 5.0f, 0.0f, 3.0f);
-    entities::sphere3 e4(5.0f, -5.0f, 0.0f, 3.0f);
-    entities::csg_entity ec(&e1, &e3, op_type::OP_UNION);
-    entities::csg_entity ec2(&ec, &e2, op_type::OP_INTERSECTION);
-    entities::csg_entity ent(&ec2, &e4, op_type::OP_SUBTRACTION);
-    //entities::sphere3 e(0.0f, 0.0f, 0.0f, 5.0f);
+    entities::gyroid g(4.0f, 0.5f);
+    entities::sphere3 s1(0.0f, 0.0f, 0.0f, 4.1f);
+    entities::sphere3 s2(0.0f, 0.0f, 0.0f, 4.0f);
+    entities::csg_entity c1(&s1, &g, op_type::OP_INTERSECTION);
+    entities::csg_entity ent(&s2, &c1, op_type::OP_UNION);
     show_entity(ent);
 
     /* Loop until the user closes the window */
