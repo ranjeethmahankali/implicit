@@ -4,6 +4,7 @@ namespace cl_kernel_sources
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
+#define AMB_STEP 0.1f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
@@ -79,7 +80,8 @@ float f_gyroid(global uchar* ptr,
   sx = sincos((*pt).x * scale, &cx);
   sy = sincos((*pt).y * scale, &cy);
   sz = sincos((*pt).z * scale, &cz);
-  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / 10.0f;
+  float factor = 4.0f / thick;
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / factor;
 }
 float f_simple(global uchar* ptr,
                uchar type,
@@ -179,8 +181,9 @@ uint sphere_trace(global uchar* packed,
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
+  float d;
   for (int i = 0; i < iters; i++){
-    float d = f_entity(packed, offsets, types, valBuf,
+    d = f_entity(packed, offsets, types, valBuf,
                        nEntities, steps, nSteps, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
@@ -197,10 +200,14 @@ uint sphere_trace(global uchar* packed,
   }
   
   if (!found) return BACKGROUND_COLOR;
+  pt -= dir * AMB_STEP;
+  float amb = (f_entity(packed, offsets, types, valBuf,
+                        nEntities, steps, nSteps, &pt) - d) / AMB_STEP;
   norm = normalize(norm);
-  float d = dot(norm, -dir);
+  d = dot(norm, -dir);
   float cd = 0.2f;
-  float cl = 0.9f;
+  float cl = 0.4f * amb + 0.6f;
+  /* printf("%.3f\n", cl); */
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
   return colorToInt(color1);
 }
