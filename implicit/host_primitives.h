@@ -19,6 +19,8 @@ extern "C"
 
 #include <glm.hpp>
 #include <optional>
+#include <iostream>
+#include <algorithm>
 
 namespace entities
 {
@@ -50,6 +52,7 @@ namespace entities
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft = std::nullopt) const;
+        void sort_nodes();
     };
 
     struct simple_entity : public entity
@@ -95,5 +98,7 @@ namespace entities
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
+
+    static size_t entity_height(const entity* const ent);
 }
 #pragma warning(pop)

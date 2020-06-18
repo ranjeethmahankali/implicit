@@ -1,7 +1,7 @@
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
-#define AMB_STEP 0.1f
+#define AMB_STEP 0.01f
 
 #include "kernel_primitives.h"
 

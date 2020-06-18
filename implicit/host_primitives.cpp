@@ -1,5 +1,6 @@
 #include "host_primitives.h"
 #include <vector>
+#include <algorithm>
 #pragma warning(push)
 #pragma warning(disable : 26812)
 
@@ -55,6 +56,7 @@ void entities::simple_entity::copy_render_data(
 entities::csg_entity::csg_entity(entity* l, entity* r, op_type o)
     : left(l), right(r), op(o)
 {
+    sort_nodes();
 }
 
 bool entities::csg_entity::simple() const
@@ -88,6 +90,15 @@ void entities::csg_entity::copy_render_data(
         right->simple() ? rei : (uint32_t)REG_R,
         toLeft.value_or(true) ? (uint32_t)REG_L : (uint32_t)REG_R
     };
+}
+
+void entities::csg_entity::sort_nodes()
+{
+    if (entity_height(left) < entity_height(right))
+    {
+        std::swap(left, right);
+        FLIP_OP(op);
+    }
 }
 
 entities::sphere3::sphere3(float xcenter, float ycenter, float zcenter, float rad)
@@ -142,3 +153,16 @@ void entities::gyroid::write_render_bytes(uint8_t*& bytes) const
 }
 
 #pragma warning(pop)
+
+size_t entities::entity_height(const entity* const ent)
+{
+    if (ent->simple())
+    {
+        return 0;
+    }
+    else
+    {
+        const csg_entity* const csg = dynamic_cast<const csg_entity* const>(ent);
+        return std::max(entity_height(csg->left), entity_height(csg->right)) + 1;
+    }
+}

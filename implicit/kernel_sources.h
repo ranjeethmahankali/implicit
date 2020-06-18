@@ -4,7 +4,7 @@ namespace cl_kernel_sources
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
-#define AMB_STEP 0.1f
+#define AMB_STEP 0.01f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
@@ -35,6 +35,7 @@ typedef enum
     OP_UNION = 1,
     OP_INTERSECTION = 2,
     OP_SUBTRACTION = 3,
+    OP_REVERSE_SUBTRACTION = 4,
 } op_type;
 typedef struct PACKED
 {
@@ -43,6 +44,14 @@ typedef struct PACKED
     UINT32_TYPE right_src;
     UINT32_TYPE dest;
 } op_step;
+/*
+For operations that are not commutative, this flip macro can help
+flip the operation when the left and right operands are swapped.
+*/
+#define FLIP_OP(op)                                         \
+  switch(op){                                               \
+  case OP_SUBTRACTION: op = OP_REVERSE_SUBTRACTION; break;  \
+  }
 #undef UINT_TYPE
 #undef FLT_TYPE
 #define CAST_TYPE(type, name, ptr) global type* name = (global type*)ptr
@@ -101,6 +110,7 @@ float apply_op(op_type op, float a, float b)
   case OP_UNION: return min(a, b);
   case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
+  case OP_REVERSE_SUBTRACTION: return max(-a, b);
   default: return a;
   }
 }

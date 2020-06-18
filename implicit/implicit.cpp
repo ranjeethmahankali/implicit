@@ -323,18 +323,32 @@ int main()
 
     float hr1 = 2.3f, hr2 = 2.2f;
     float a1 = 2.05f, a2 = 2.0f;
-    entities::sphere3 fs11(hr1, 0.0f, 0.0f, hr1 / 1.5f);
-    entities::sphere3 fs12(hr2, 0.0f, 0.0f, hr2 / 1.5f);
-    entities::box3 s1(-a1, -a1, -a1, a1, a1, a1);
-    entities::box3 s2(-a2, -a2, -a2, a2, a2, a2);
-    entities::gyroid g(6.0f, 0.2f);
-    
+    entities::gyroid g(8.0f, 0.2f);
+
+    entities::box3 b1(-a1, -a1, -a1, a1, a1, a1);
+    entities::sphere3 ss1(-a2, -a2,  a2, 1.8f);
+    entities::sphere3 ss2( a2, -a2,  a2, 1.8f); entities::csg_entity ssu1(&ss1, &ss2, op_type::OP_UNION);
+    /*entities::sphere3 ss3( a2,  a2,  a2, 1.8f); entities::csg_entity ssu2(&ssu1, &ss3, op_type::OP_UNION);
+    entities::sphere3 ss4(-a2,  a2,  a2, 1.8f); entities::csg_entity ssu3(&ssu2, &ss4, op_type::OP_UNION);
+    entities::sphere3 ss5(-a2, -a2, -a2, 1.8f); entities::csg_entity ssu4(&ssu3, &ss5, op_type::OP_UNION);
+    entities::sphere3 ss6( a2, -a2, -a2, 1.8f); entities::csg_entity ssu5(&ssu4, &ss6, op_type::OP_UNION);
+    entities::sphere3 ss7( a2,  a2, -a2, 1.8f); entities::csg_entity ssu6(&ssu5, &ss7, op_type::OP_UNION);
+    entities::sphere3 ss8(-a2,  a2, -a2, 1.8f); entities::csg_entity ssu7(&ssu6, &ss8, op_type::OP_UNION);*/
+
+    entities::box3 b2(-a2, -a2, -a2, a2, a2, a2);
+    entities::sphere3 sb1(-a2, -a2,  a2, 1.9f);
+    entities::sphere3 sb2( a2, -a2,  a2, 1.9f); entities::csg_entity sbu1(&sb1, &sb2, op_type::OP_UNION);
+    /*entities::sphere3 sb3( a2,  a2,  a2, 1.9f); entities::csg_entity sbu2(&sbu1, &sb3, op_type::OP_UNION);
+    entities::sphere3 sb4(-a2,  a2,  a2, 1.9f); entities::csg_entity sbu3(&sbu2, &sb4, op_type::OP_UNION);
+    entities::sphere3 sb5(-a2, -a2, -a2, 1.9f); entities::csg_entity sbu4(&sbu3, &sb5, op_type::OP_UNION);
+    entities::sphere3 sb6( a2, -a2, -a2, 1.9f); entities::csg_entity sbu5(&sbu4, &sb6, op_type::OP_UNION);
+    entities::sphere3 sb7( a2,  a2, -a2, 1.9f); entities::csg_entity sbu6(&sbu5, &sb7, op_type::OP_UNION);
+    entities::sphere3 sb8(-a2,  a2, -a2, 1.9f); entities::csg_entity sbu7(&sbu6, &sb8, op_type::OP_UNION);*/
+
     /*entities::csg_entity outer(&s1, &fs12, op_type::OP_SUBTRACTION);
     entities::csg_entity inner(&s2, &fs11, op_type::OP_SUBTRACTION);*/
-    /*entities::csg_entity outer(&s1, &fs12, OP_SUBTRACTION);
-    entities::csg_entity inner(&s2, &fs11, OP_SUBTRACTION);*/
-    entities::box3 outer(-a1, -a1, -a1, a1, a1, a1);
-    entities::box3 inner(-a2, -a2, -a2, a2, a2, a2);
+    entities::csg_entity outer(&b1, &ssu1, OP_SUBTRACTION);
+    entities::csg_entity inner(&b2, &sbu1, OP_SUBTRACTION);
 
     entities::csg_entity c1(&outer, &g, op_type::OP_INTERSECTION);
     entities::csg_entity ent(&inner, &c1, op_type::OP_UNION);
