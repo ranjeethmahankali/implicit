@@ -4,13 +4,14 @@ namespace cl_kernel_sources
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
-#define AMB_STEP 0.01f
+#define AMB_STEP 0.05f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
 #define PACKED __attribute__((packed))
-#define REG_L -1
-#define REG_R -2
+#define REG_STACK_SIZE 4
+#define SRC_REG 1
+#define SRC_VAL 2
 #define ENT_TYPE_BOX 1
 typedef struct PACKED
 {
@@ -41,7 +42,9 @@ typedef struct PACKED
 {
     op_type type;
     UINT32_TYPE left_src;
+    UINT32_TYPE left_index;
     UINT32_TYPE right_src;
+    UINT32_TYPE right_index;
     UINT32_TYPE dest;
 } op_step;
 /*
@@ -118,6 +121,7 @@ float f_entity(global uchar* packed,
                global uint* offsets,
                global uchar* types,
                local float* valBuf,
+               local float* regBuf,
                uint nEntities,
                global op_step* steps,
                uint nSteps,
@@ -135,28 +139,22 @@ float f_entity(global uchar* packed,
   for (uint ei = 0; ei < nEntities; ei++){
     valBuf[ei * bsize + bi] = f_simple(packed + offsets[ei], types[ei], pt);
   }
-  float regL = 1.0f, regR;
   // Perform the csg operations.
   for (uint si = 0; si < nSteps; si++){
-    uint ls = steps[si].left_src;
-    uint rs = steps[si].right_src;
-    uint ds = steps[si].dest;
-    if ((ls != REG_L && ls >= nEntities) ||
-        (rs != REG_R && rs >= nEntities) ||
-        (ds != REG_L && ds != REG_R)){
-      return 1.0f;
-    }
-    float l = ls == REG_L ? regL : valBuf[ls * bsize + bi];
-    float r = rs == REG_R ? regR : valBuf[rs * bsize + bi];
-    float v = apply_op(steps[si].type, l, r);
+    uint i = steps[si].left_index;
+    float l = steps[si].left_src == SRC_REG ?
+      regBuf[i * bsize + bi] :
+      valBuf[i * bsize + bi];
     
-    if (ds == REG_R)
-      regR = v;
-    else
-      regL = v;
+    i = steps[si].right_index;
+    float r = steps[si].right_src == SRC_REG ?
+      regBuf[i * bsize + bi] :
+      valBuf[i * bsize + bi];
+    
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].type, l, r);
   }
   
-  return regL;
+  return regBuf[bi];
 }
 /*Macro to numerically compute the gradient vector of a given
 implicit function.*/
@@ -180,6 +178,7 @@ uint sphere_trace(global uchar* packed,
                   global uint* offsets,
                   global uchar* types,
                   local float* valBuf,
+                  local float* regBuf,
                   uint nEntities,
                   global op_step* steps,
                   uint nSteps,
@@ -193,11 +192,11 @@ uint sphere_trace(global uchar* packed,
   bool found = false;
   float d;
   for (int i = 0; i < iters; i++){
-    d = f_entity(packed, offsets, types, valBuf,
+    d = f_entity(packed, offsets, types, valBuf, regBuf,
                        nEntities, steps, nSteps, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(packed, offsets, types, valBuf,
+      GRADIENT(f_entity(packed, offsets, types, valBuf, regBuf,
                         nEntities, steps, nSteps, &pt),
                pt, norm, d);
       found = true;
@@ -211,7 +210,7 @@ uint sphere_trace(global uchar* packed,
   
   if (!found) return BACKGROUND_COLOR;
   pt -= dir * AMB_STEP;
-  float amb = (f_entity(packed, offsets, types, valBuf,
+  float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
                         nEntities, steps, nSteps, &pt) - d) / AMB_STEP;
   norm = normalize(norm);
   d = dot(norm, -dir);
@@ -249,6 +248,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* types,
                     global uchar* offsets,
                     local float* valBuf,
+                    local float* regBuf,
                     uint nEntities,
                     global op_step* steps,
                     uint nSteps,
@@ -264,7 +264,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   int iters = 500;
   float tolerance = 0.00001f;
   float dTotal = 0;
-  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
+  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
                             nEntities, steps, nSteps, pos, dir,
                             iters, tolerance);
 }

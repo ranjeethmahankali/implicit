@@ -1,5 +1,6 @@
-#define REG_L -1
-#define REG_R -2
+#define REG_STACK_SIZE 4
+#define SRC_REG 1
+#define SRC_VAL 2
 
 #define ENT_TYPE_BOX 1
 typedef struct PACKED
@@ -36,7 +37,9 @@ typedef struct PACKED
 {
     op_type type;
     UINT32_TYPE left_src;
+    UINT32_TYPE left_index;
     UINT32_TYPE right_src;
+    UINT32_TYPE right_index;
     UINT32_TYPE dest;
 } op_step;
 

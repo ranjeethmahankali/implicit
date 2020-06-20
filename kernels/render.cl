@@ -32,6 +32,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* types,
                     global uchar* offsets,
                     local float* valBuf,
+                    local float* regBuf,
                     uint nEntities,
                     global op_step* steps,
                     uint nSteps,
@@ -49,7 +50,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   float tolerance = 0.00001f;
 
   float dTotal = 0;
-  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf,
+  pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
                             nEntities, steps, nSteps, pos, dir,
                             iters, tolerance);
 }

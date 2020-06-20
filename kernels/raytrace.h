@@ -1,7 +1,7 @@
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
-#define AMB_STEP 0.01f
+#define AMB_STEP 0.05f
 
 #include "kernel_primitives.h"
 
@@ -29,6 +29,7 @@ uint sphere_trace(global uchar* packed,
                   global uint* offsets,
                   global uchar* types,
                   local float* valBuf,
+                  local float* regBuf,
                   uint nEntities,
                   global op_step* steps,
                   uint nSteps,
@@ -42,11 +43,11 @@ uint sphere_trace(global uchar* packed,
   bool found = false;
   float d;
   for (int i = 0; i < iters; i++){
-    d = f_entity(packed, offsets, types, valBuf,
+    d = f_entity(packed, offsets, types, valBuf, regBuf,
                        nEntities, steps, nSteps, &pt);
     if (d < 0.0f) break;
     if (d < tolerance){
-      GRADIENT(f_entity(packed, offsets, types, valBuf,
+      GRADIENT(f_entity(packed, offsets, types, valBuf, regBuf,
                         nEntities, steps, nSteps, &pt),
                pt, norm, d);
       found = true;
@@ -61,7 +62,7 @@ uint sphere_trace(global uchar* packed,
   if (!found) return BACKGROUND_COLOR;
 
   pt -= dir * AMB_STEP;
-  float amb = (f_entity(packed, offsets, types, valBuf,
+  float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
                         nEntities, steps, nSteps, &pt) - d) / AMB_STEP;
   norm = normalize(norm);
   d = dot(norm, -dir);

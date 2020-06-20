@@ -79,6 +79,7 @@ float f_entity(global uchar* packed,
                global uint* offsets,
                global uchar* types,
                local float* valBuf,
+               local float* regBuf,
                uint nEntities,
                global op_step* steps,
                uint nSteps,
@@ -98,26 +99,20 @@ float f_entity(global uchar* packed,
     valBuf[ei * bsize + bi] = f_simple(packed + offsets[ei], types[ei], pt);
   }
 
-  float regL = 1.0f, regR;
   // Perform the csg operations.
   for (uint si = 0; si < nSteps; si++){
-    uint ls = steps[si].left_src;
-    uint rs = steps[si].right_src;
-    uint ds = steps[si].dest;
-    if ((ls != REG_L && ls >= nEntities) ||
-        (rs != REG_R && rs >= nEntities) ||
-        (ds != REG_L && ds != REG_R)){
-      return 1.0f;
-    }
-    float l = ls == REG_L ? regL : valBuf[ls * bsize + bi];
-    float r = rs == REG_R ? regR : valBuf[rs * bsize + bi];
-    float v = apply_op(steps[si].type, l, r);
+    uint i = steps[si].left_index;
+    float l = steps[si].left_src == SRC_REG ?
+      regBuf[i * bsize + bi] :
+      valBuf[i * bsize + bi];
     
-    if (ds == REG_R)
-      regR = v;
-    else
-      regL = v;
+    i = steps[si].right_index;
+    float r = steps[si].right_src == SRC_REG ?
+      regBuf[i * bsize + bi] :
+      valBuf[i * bsize + bi];
+    
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].type, l, r);
   }
   
-  return regL;
+  return regBuf[bi];
 }
