@@ -70,7 +70,6 @@ float apply_op(op_type op, float a, float b)
   case OP_UNION: return min(a, b);
   case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
-  case OP_REVERSE_SUBTRACTION: return max(-a, b);
   default: return a;
   }
 }

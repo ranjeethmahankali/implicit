@@ -30,7 +30,6 @@ typedef enum
     OP_UNION = 1,
     OP_INTERSECTION = 2,
     OP_SUBTRACTION = 3,
-    OP_REVERSE_SUBTRACTION = 4,
 } op_type;
 
 typedef struct PACKED
@@ -42,12 +41,3 @@ typedef struct PACKED
     UINT32_TYPE right_index;
     UINT32_TYPE dest;
 } op_step;
-
-/*
-For operations that are not commutative, this flip macro can help
-flip the operation when the left and right operands are swapped.
-*/
-#define FLIP_OP(op)                                         \
-  switch(op){                                               \
-  case OP_SUBTRACTION: op = OP_REVERSE_SUBTRACTION; break;  \
-  }

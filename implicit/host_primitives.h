@@ -21,7 +21,7 @@ extern "C"
 #include <optional>
 #include <iostream>
 #include <algorithm>
-#include <stack>
+#include <memory>
 
 namespace entities
 {
@@ -41,8 +41,8 @@ namespace entities
 
     struct csg_entity : public entity
     {
-        entity* left;
-        entity* right;
+        std::shared_ptr<entity> left;
+        std::shared_ptr<entity> right;
         op_type op;
 
         csg_entity(entity* l, entity* r, op_type op);
