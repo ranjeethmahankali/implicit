@@ -63,13 +63,15 @@ float f_simple(global uchar* ptr,
   }
 }
 
-float apply_op(op_type op, float a, float b)
+float apply_op(op_defn op, float a, float b)
 {
-  switch(op){
+  switch(op.type){
   case OP_NONE: return a;
   case OP_UNION: return min(a, b);
   case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
+
+  case OP_OFFSET: return a - op.data.offset_distance;
   default: return a;
   }
 }
@@ -110,7 +112,7 @@ float f_entity(global uchar* packed,
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
-    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].type, l, r);
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r);
   }
   
   return regBuf[bi];

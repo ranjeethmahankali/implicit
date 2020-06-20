@@ -27,6 +27,9 @@ constexpr size_t MAX_ENTITY_COUNT = 32;
 
 namespace entities
 {
+    struct entity;
+    typedef std::shared_ptr<entity> ent_ref;
+
     struct entity
     {
     protected:
@@ -41,23 +44,52 @@ namespace entities
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const = 0;
     };
 
-    struct csg_entity : public entity
+    struct comp_entity : public entity
     {
-        std::shared_ptr<entity> left;
-        std::shared_ptr<entity> right;
-        op_type op;
+        ent_ref left;
+        ent_ref right;
+        op_defn op;
 
-        csg_entity(entity* l, entity* r, op_type op);
+    private:
+        comp_entity(ent_ref l, ent_ref r, op_defn op);
+        comp_entity(ent_ref, op_defn op);
 
+    public:
         virtual bool simple() const;
         virtual uint8_t type() const;
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
+
+        template <typename T1, typename T2>
+        static ent_ref make_csg(T1 l, T2 r, op_defn op)
+        {
+            ent_ref ls(l);
+            ent_ref rs(r);
+            return ent_ref(new comp_entity(ls, rs, op));
+        }
+
+        template <typename T1, typename T2>
+        static ent_ref make_csg(T1 l, T2 r, op_type op)
+        {
+            op_defn opdef;
+            opdef.type = op;
+            return make_csg(l, r, opdef);
+        };
+
+        template <typename T>
+        static ent_ref make_offset(T ent, float distance)
+        {
+            ent_ref ep(ent);
+            op_defn op;
+            op.type = op_type::OP_OFFSET;
+            op.data.offset_distance = distance;
+            return ent_ref(new comp_entity(ep, op));
+        };
     };
 
-    struct simple_entity : public entity
+    struct simp_entity : public entity
     {
         virtual bool simple() const;
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
@@ -68,7 +100,7 @@ namespace entities
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
     };
 
-    struct box3 : public simple_entity
+    struct box3 : public simp_entity
     {
         glm::vec3 min;
         glm::vec3 max;
@@ -79,7 +111,7 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 
-    struct sphere3 : public simple_entity
+    struct sphere3 : public simp_entity
     {
         glm::vec3 center;
         float radius;
@@ -90,7 +122,7 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 
-    struct gyroid : public simple_entity
+    struct gyroid : public simp_entity
     {
         float scale;
         float thickness;

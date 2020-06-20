@@ -29,11 +29,25 @@ typedef enum
     OP_UNION = 1,
     OP_INTERSECTION = 2,
     OP_SUBTRACTION = 3,
+
+    OP_OFFSET = 8,
 } op_type;
+
+typedef union PACKED
+{
+    float blend_radius;
+    float offset_distance;
+} op_data;
 
 typedef struct PACKED
 {
     op_type type;
+    op_data data;
+} op_defn;
+
+typedef struct PACKED
+{
+    op_defn op;
     UINT32_TYPE left_src;
     UINT32_TYPE left_index;
     UINT32_TYPE right_src;

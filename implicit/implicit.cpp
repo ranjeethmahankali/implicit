@@ -275,12 +275,12 @@ void write_buf(cl::Buffer& buffer, T* data, size_t size)
     s_queue.enqueueWriteBuffer(buffer, CL_TRUE, 0, size * sizeof(T), data);
 };
 
-void show_entity(const entities::entity& entity)
+void show_entity(std::shared_ptr<entities::entity> entity)
 {
     try
     {
         size_t nBytes = 0, nEntities = 0, nSteps = 0;
-        entity.render_data_size(nBytes, nEntities, nSteps);
+        entity->render_data_size(nBytes, nEntities, nSteps);
         std::vector<uint8_t> bytes(nBytes);
         std::vector<uint32_t> offsets(nEntities);
         std::vector<uint8_t> types(nEntities);
@@ -293,7 +293,7 @@ void show_entity(const entities::entity& entity)
             uint8_t* tptr = types.data();
             op_step* sptr = steps.data();
             size_t ei = 0, co = 0;
-            entity.copy_render_data(bptr, optr, tptr, sptr, ei, co);
+            entity->copy_render_data(bptr, optr, tptr, sptr, ei, co);
         }
         
         write_buf(s_packedBuf, bytes.data(), nBytes);
@@ -337,47 +337,43 @@ static void render()
     CATCH_EXIT_CL_ERR;
 }
 
-static entities::csg_entity test_heavy_part()
+static entities::ent_ref test_heavy_part()
 {
     using namespace entities;
     float a1 = 2.04f, a2 = 2.0f;
-    return csg_entity(
-        new csg_entity(
-            new box3(-a2, -a2, -a2, a2, a2, a2),
-            new csg_entity(
-                new csg_entity(
-                    new csg_entity(
-                        new csg_entity(
-                            new csg_entity(
-                                new csg_entity(
-                                    new csg_entity(
-                                        new sphere3(a2, a2, a2, 1.84f),
-                                        new sphere3(a2, -a2, a2, 1.84f), op_type::OP_UNION),
-                                    new sphere3(-a2, -a2, a2, 1.84f), op_type::OP_UNION),
-                                new sphere3(-a2, a2, a2, 1.84f), op_type::OP_UNION),
-                            new sphere3(-a2, -a2, -a2, 1.84f), op_type::OP_UNION),
-                        new sphere3(a2, -a2, -a2, 1.84f), op_type::OP_UNION),
-                    new sphere3(a2, a2, -a2, 1.84f), op_type::OP_UNION),
-                new sphere3(-a2, a2, -a2, 1.84f), op_type::OP_UNION), OP_SUBTRACTION),
-        new csg_entity(
-            new csg_entity(new box3(-a1, -a1, -a1, a1, a1, a1),
-                new csg_entity(
-                    new csg_entity(
-                        new csg_entity(
-                            new csg_entity(
-                                new csg_entity(
-                                    new csg_entity(
-                                        new csg_entity(
-                                            new sphere3(a2, a2, a2, 1.8f),
-                                            new sphere3(a2, -a2, a2, 1.8f), op_type::OP_UNION),
-                                        new sphere3(-a2, -a2, a2, 1.8f), op_type::OP_UNION),
-                                    new sphere3(-a2, a2, a2, 1.8f), op_type::OP_UNION),
-                                new sphere3(-a2, -a2, -a2, 1.8f), op_type::OP_UNION),
-                            new sphere3(a2, -a2, -a2, 1.8f), op_type::OP_UNION),
-                        new sphere3(a2, a2, -a2, 1.8f), op_type::OP_UNION),
-                    new sphere3(-a2, a2, -a2, 1.8f), op_type::OP_UNION), OP_SUBTRACTION),
-            new gyroid(10.0f, 0.2f), op_type::OP_INTERSECTION), op_type::OP_UNION);
+    ent_ref inner = comp_entity::make_csg(new box3(-a1, -a1, -a1, a1, a1, a1),
+        comp_entity::make_csg(
+            comp_entity::make_csg(
+                comp_entity::make_csg(
+                    comp_entity::make_csg(
+                        comp_entity::make_csg(
+                            comp_entity::make_csg(
+                                comp_entity::make_csg(
+                                    new sphere3(a2, a2, a2, 1.8f),
+                                    new sphere3(a2, -a2, a2, 1.8f), op_type::OP_UNION),
+                                new sphere3(-a2, -a2, a2, 1.8f), op_type::OP_UNION),
+                            new sphere3(-a2, a2, a2, 1.8f), op_type::OP_UNION),
+                        new sphere3(-a2, -a2, -a2, 1.8f), op_type::OP_UNION),
+                    new sphere3(a2, -a2, -a2, 1.8f), op_type::OP_UNION),
+                new sphere3(a2, a2, -a2, 1.8f), op_type::OP_UNION),
+            new sphere3(-a2, a2, -a2, 1.8f), op_type::OP_UNION), OP_SUBTRACTION);
+
+    ent_ref outer = comp_entity::make_offset<ent_ref>(inner, 0.04f);
+
+    ent_ref pattern = comp_entity::make_csg(
+        outer,
+        new gyroid(10.0f, 0.2f), op_type::OP_INTERSECTION);
+
+    //return pattern;
+    return comp_entity::make_csg(inner, pattern, op_type::OP_UNION);
 }
+
+static entities::ent_ref test_offset()
+{
+    using namespace entities;
+    float s = 1.0f;
+    return ent_ref(comp_entity::make_offset<box3*>(new box3(-s, -s, -s, s, s, s), 0.2f));
+};
 
 int main()
 {
@@ -386,6 +382,7 @@ int main()
     init_buffers();
 
     show_entity(test_heavy_part());
+    //show_entity(test_offset());
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))

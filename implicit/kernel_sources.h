@@ -36,10 +36,21 @@ typedef enum
     OP_UNION = 1,
     OP_INTERSECTION = 2,
     OP_SUBTRACTION = 3,
+    OP_OFFSET = 8,
 } op_type;
+typedef union PACKED
+{
+    float blend_radius;
+    float offset_distance;
+} op_data;
 typedef struct PACKED
 {
     op_type type;
+    op_data data;
+} op_defn;
+typedef struct PACKED
+{
+    op_defn op;
     UINT32_TYPE left_src;
     UINT32_TYPE left_index;
     UINT32_TYPE right_src;
@@ -97,13 +108,14 @@ float f_simple(global uchar* ptr,
   default: return 1.0f;
   }
 }
-float apply_op(op_type op, float a, float b)
+float apply_op(op_defn op, float a, float b)
 {
-  switch(op){
+  switch(op.type){
   case OP_NONE: return a;
   case OP_UNION: return min(a, b);
   case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
+  case OP_OFFSET: return a - op.data.offset_distance;
   default: return a;
   }
 }
@@ -141,7 +153,7 @@ float f_entity(global uchar* packed,
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
-    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].type, l, r);
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r);
   }
   
   return regBuf[bi];

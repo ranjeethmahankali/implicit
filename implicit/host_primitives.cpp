@@ -31,18 +31,18 @@ void entities::box3::write_render_bytes(uint8_t*& bytes) const
     bytes += sizeof(ient);
 }
 
-bool entities::simple_entity::simple() const
+bool entities::simp_entity::simple() const
 {
     return true;
 }
 
-void entities::simple_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
+void entities::simp_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
 {
     nBytes += num_render_bytes();
     nEntities++;
 }
 
-void entities::simple_entity::copy_render_data(
+void entities::simp_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps, size_t& entityIndex,
     size_t& currentOffset, std::optional<uint32_t> reg) const
 {
@@ -53,35 +53,40 @@ void entities::simple_entity::copy_render_data(
     entityIndex++;
 }
 
-entities::csg_entity::csg_entity(entity* l, entity* r, op_type o)
-    : left(l), right(r), op(o)
+entities::comp_entity::comp_entity(std::shared_ptr<entity> l, std::shared_ptr<entity> r, op_defn op)
+    :left(l), right(r), op(op)
 {
 }
 
-bool entities::csg_entity::simple() const
+entities::comp_entity::comp_entity(std::shared_ptr<entity> a, op_defn o)
+    :left(a), right(nullptr), op(o)
+{
+}
+
+bool entities::comp_entity::simple() const
 {
     return false;
 }
 
-uint8_t entities::csg_entity::type() const
+uint8_t entities::comp_entity::type() const
 {
     return ENT_TYPE_CSG;
 }
 
-void entities::csg_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
+void entities::comp_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
 {
-    left->render_data_size(nBytes, nEntities, nSteps);
-    right->render_data_size(nBytes, nEntities, nSteps);
+    if (left) left->render_data_size(nBytes, nEntities, nSteps);
+    if (right) right->render_data_size(nBytes, nEntities, nSteps);
     nSteps++;
 }
 
-void entities::csg_entity::copy_render_data(
+void entities::comp_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
     size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg) const
 {
     uint32_t regVal = reg.value_or(0);
-    bool lcsg = !left->simple();
-    bool rcsg = !right->simple();
+    bool lcsg = (left) ? !left->simple() : false;
+    bool rcsg = (right) ? !right->simple() : false;
 
     if (regVal >= MAX_ENTITY_COUNT - 2)
     {
@@ -90,9 +95,11 @@ void entities::csg_entity::copy_render_data(
     }
 
     uint32_t lsrc = lcsg ? regVal : (uint32_t)entityIndex;
-    left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal);
+    if (left)
+        left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal);
     uint32_t rsrc = (rcsg && lcsg) ? regVal + 1 : (rcsg ? regVal : (uint32_t)entityIndex);
-    right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal);
+    if (right)
+        right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal);
 
     *(steps++) = {
         op,
