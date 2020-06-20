@@ -12,24 +12,31 @@ namespace cl_kernel_sources
 #define PACKED __attribute__((packed))
 #define SRC_REG 1
 #define SRC_VAL 2
-#define ENT_TYPE_BOX 1
+#define ENT_TYPE_CSG        0
+#define ENT_TYPE_BOX        1
+#define ENT_TYPE_SPHERE     2
+#define ENT_TYPE_CYLINDER   3
+#define ENT_TYPE_GYROID     4
 typedef struct PACKED
 {
   FLT_TYPE bounds[6];
 } i_box;
-#define ENT_TYPE_SPHERE 2
 typedef struct PACKED
 {
   FLT_TYPE center[3];
   FLT_TYPE radius;
 } i_sphere;
-#define ENT_TYPE_GYROID 3
+typedef struct PACKED
+{
+    FLT_TYPE point1[3];
+    FLT_TYPE point2[3];
+    FLT_TYPE radius;
+} i_cylinder;
 typedef struct PACKED
 {
   FLT_TYPE scale;
   FLT_TYPE thickness;
 } i_gyroid;
-#define ENT_TYPE_CSG 0
 typedef enum
 {
     OP_NONE = 0,
@@ -84,6 +91,24 @@ float f_sphere(global uchar* ptr,
                  (float3)(center[0], center[1], center[2])) -
           fabs(radius));
 }
+float f_cylinder(global uchar* ptr,
+                 float3* pt)
+{
+  CAST_TYPE(i_cylinder, cyl, ptr);
+  float3 p1 = (float3)(cyl->point1[0],
+                       cyl->point1[1],
+                       cyl->point1[2]);
+  float3 p2 = (float3)(cyl->point2[0],
+                       cyl->point2[1],
+                       cyl->point2[2]);
+  float3 ln = normalize(p2 - p1);
+  float3 r = p1 - (*pt);
+  float dist = length(r - ln * dot(ln, r)) - fabs(cyl->radius);
+  dist = max(dist, dot(ln, r));
+  r = p2 - (*pt);
+  dist = max(dist, dot(-ln, r));
+  return dist;
+}
 float f_gyroid(global uchar* ptr,
                float3* pt)
 {
@@ -105,6 +130,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_BOX: return f_box(ptr, pt);
   case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
+  case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   default: return 1.0f;
   }
 }

@@ -37,6 +37,25 @@ float f_sphere(global uchar* ptr,
           fabs(radius));
 }
 
+float f_cylinder(global uchar* ptr,
+                 float3* pt)
+{
+  CAST_TYPE(i_cylinder, cyl, ptr);
+  float3 p1 = (float3)(cyl->point1[0],
+                       cyl->point1[1],
+                       cyl->point1[2]);
+  float3 p2 = (float3)(cyl->point2[0],
+                       cyl->point2[1],
+                       cyl->point2[2]);
+  float3 ln = normalize(p2 - p1);
+  float3 r = p1 - (*pt);
+  float dist = length(r - ln * dot(ln, r)) - fabs(cyl->radius);
+  dist = max(dist, dot(ln, r));
+  r = p2 - (*pt);
+  dist = max(dist, dot(-ln, r));
+  return dist;
+}
+
 float f_gyroid(global uchar* ptr,
                float3* pt)
 {
@@ -59,6 +78,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_BOX: return f_box(ptr, pt);
   case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
+  case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   default: return 1.0f;
   }
 }

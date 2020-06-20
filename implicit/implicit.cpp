@@ -375,14 +375,21 @@ static entities::ent_ref test_offset()
     return ent_ref(comp_entity::make_offset<box3*>(new box3(-s, -s, -s, s, s, s), 0.2f));
 };
 
+static entities::ent_ref test_cylinder()
+{
+    using namespace entities;
+    return entity::wrap_simple(cylinder3(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 3.0f, 3.0f));
+};
+
 int main()
 {
     init_ogl();
     init_ocl();
     init_buffers();
 
-    show_entity(test_heavy_part());
+    //show_entity(test_heavy_part());
     //show_entity(test_offset());
+    show_entity(test_cylinder());
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))

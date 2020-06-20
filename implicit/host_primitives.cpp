@@ -16,9 +16,7 @@ uint8_t entities::box3::type() const
 
 size_t entities::box3::num_render_bytes() const
 {
-    return
-        sizeof(min) +
-        sizeof(max);
+    return sizeof(i_box);
 }
 
 void entities::box3::write_render_bytes(uint8_t*& bytes) const
@@ -123,9 +121,7 @@ uint8_t entities::sphere3::type() const
 
 size_t entities::sphere3::num_render_bytes() const
 {
-    return
-        sizeof(center) +
-        sizeof(radius);
+    return sizeof(i_sphere);
 }
 
 void entities::sphere3::write_render_bytes(uint8_t*& bytes) const
@@ -150,9 +146,7 @@ uint8_t entities::gyroid::type() const
 
 size_t entities::gyroid::num_render_bytes() const
 {
-    return
-        sizeof(scale) +
-        sizeof(thickness);
+    return sizeof(i_gyroid);
 }
 
 void entities::gyroid::write_render_bytes(uint8_t*& bytes) const
@@ -163,3 +157,25 @@ void entities::gyroid::write_render_bytes(uint8_t*& bytes) const
 }
 
 #pragma warning(pop)
+
+entities::cylinder3::cylinder3(float p1x, float p1y, float p1z, float p2x, float p2y, float p2z, float rad)
+    : point1(p1x, p1y, p1z), point2(p2x, p2y, p2z), radius(rad)
+{
+}
+
+uint8_t entities::cylinder3::type() const
+{
+    return ENT_TYPE_CYLINDER;
+}
+
+size_t entities::cylinder3::num_render_bytes() const
+{
+    return sizeof(i_cylinder);
+}
+
+void entities::cylinder3::write_render_bytes(uint8_t*& bytes) const
+{
+    i_cylinder cyl = { point1.x, point1.y, point1.z, point2.x, point2.y, point2.z, radius };
+    std::memcpy(bytes, &cyl, sizeof(cyl));
+    bytes += sizeof(cyl);
+}

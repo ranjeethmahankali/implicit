@@ -42,6 +42,11 @@ namespace entities
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const = 0;
+
+        template <typename T> static ent_ref wrap_simple(T simple)
+        {
+            return ent_ref(dynamic_cast<entity*>(new T(simple)));
+        };
     };
 
     struct comp_entity : public entity
@@ -61,6 +66,9 @@ namespace entities
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
+
+        comp_entity(const comp_entity&) = delete;
+        const comp_entity& operator=(const comp_entity&) = delete;
 
         template <typename T1, typename T2>
         static ent_ref make_csg(T1 l, T2 r, op_defn op)
@@ -91,6 +99,10 @@ namespace entities
 
     struct simp_entity : public entity
     {
+        const simp_entity& operator=(const simp_entity&) = delete;
+    protected:
+        simp_entity() = default;
+
         virtual bool simple() const;
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
         virtual size_t num_render_bytes() const = 0;
@@ -117,6 +129,19 @@ namespace entities
         float radius;
         sphere3(float xcenter, float ycenter, float zcenter, float radius);
         
+        virtual uint8_t type() const;
+        virtual size_t num_render_bytes() const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
+    };
+
+    struct cylinder3 : public simp_entity
+    {
+        glm::vec3 point1;
+        glm::vec3 point2;
+        float radius;
+
+        cylinder3(float p1x, float p1y, float p1z, float p2x, float p2y, float p2z, float radius);
+
         virtual uint8_t type() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
