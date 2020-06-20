@@ -275,7 +275,7 @@ void write_buf(cl::Buffer& buffer, T* data, size_t size)
     s_queue.enqueueWriteBuffer(buffer, CL_TRUE, 0, size * sizeof(T), data);
 };
 
-void show_entity(std::shared_ptr<entities::entity> entity)
+void show_entity(entities::ent_ref entity)
 {
     try
     {
