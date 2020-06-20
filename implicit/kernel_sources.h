@@ -215,6 +215,9 @@ uint sphere_trace(global uchar* packed,
                   int iters,
                   float tolerance)
 {
+  if (nEntities == 0)
+    return BACKGROUND_COLOR;
+  
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;

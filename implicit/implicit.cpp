@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <iostream>
 #include <algorithm>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "camera.h"
 
 #include <assert.h>
@@ -51,6 +54,10 @@ static size_t s_localMemSize = 0;
 static size_t s_maxBufSize = 0;
 static size_t s_maxLocalBufSize = 0;
 static size_t s_workGroupSize = 0;
+
+static std::mutex s_mutex;
+static std::condition_variable s_cv;
+static bool s_pauseRender = false;
 
 static void init_ogl()
 {
@@ -279,12 +286,21 @@ void show_entity(entities::ent_ref entity)
 {
     try
     {
+        // Pause the render loop.
+        {
+            std::lock_guard<std::mutex> lock(s_mutex);
+            s_pauseRender = true;
+        }
+
         size_t nBytes = 0, nEntities = 0, nSteps = 0;
         entity->render_data_size(nBytes, nEntities, nSteps);
         std::vector<uint8_t> bytes(nBytes);
         std::vector<uint32_t> offsets(nEntities);
         std::vector<uint8_t> types(nEntities);
         std::vector<op_step> steps(nSteps);
+
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
 
         // Copy the render data into these buffers.
         {
@@ -302,6 +318,13 @@ void show_entity(entities::ent_ref entity)
         write_buf(s_opStepBuf, steps.data(), nSteps);
         s_numCurrentEntities = nEntities;
         s_opStepCount = nSteps;
+
+        // Resume the render loop.
+        {
+            std::lock_guard<std::mutex> lock(s_mutex);
+            s_pauseRender = false;
+            s_cv.notify_one();
+        }
     }
     CATCH_EXIT_CL_ERR;
 }
@@ -381,19 +404,37 @@ static entities::ent_ref test_cylinder()
     return entity::wrap_simple(cylinder3(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 3.0f, 3.0f));
 };
 
+static void cmd_loop()
+{
+    std::string input;
+    while (!glfwWindowShouldClose(s_window))
+    {
+        std::cout << ">>> ";
+        std::cin >> input;
+        if (input.empty())
+            continue;
+        std::cout << "Received input: " << input << std::endl;
+        show_entity(test_cylinder());
+    }
+};
+
 int main()
 {
     init_ogl();
     init_ocl();
     init_buffers();
 
-    //show_entity(test_heavy_part());
-    //show_entity(test_offset());
-    show_entity(test_cylinder());
+    std::thread cmdThread(cmd_loop);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_window))
     {
+        while (s_pauseRender)
+        {
+            std::unique_lock<std::mutex> lock(s_mutex);
+            s_cv.wait(lock);
+            lock.unlock();
+        }
         render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));
@@ -411,6 +452,7 @@ int main()
     }
 
     glfwTerminate();
+    cmdThread.join();
     delete s_kernel;
     return 0;
 }
