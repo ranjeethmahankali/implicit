@@ -44,7 +44,7 @@ void entities::simple_entity::render_data_size(size_t& nBytes, size_t& nEntities
 
 void entities::simple_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps, size_t& entityIndex,
-    size_t& currentOffset, std::optional<bool> toLeft) const
+    size_t& currentOffset, std::optional<uint32_t> reg) const
 {
     *(offsets++) = (uint32_t)currentOffset;
     currentOffset += num_render_bytes();
@@ -56,7 +56,6 @@ void entities::simple_entity::copy_render_data(
 entities::csg_entity::csg_entity(entity* l, entity* r, op_type o)
     : left(l), right(r), op(o)
 {
-    sort_nodes();
 }
 
 bool entities::csg_entity::simple() const
@@ -78,27 +77,25 @@ void entities::csg_entity::render_data_size(size_t& nBytes, size_t& nEntities, s
 
 void entities::csg_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-    size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft) const
+    size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg) const
 {
-    uint32_t lei = (uint32_t)entityIndex;
-    left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, true);
-    uint32_t rei = (uint32_t)entityIndex;
-    right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, false);
+    uint32_t regVal = reg.value_or(0);
+    bool lcsg = !left->simple();
+    bool rcsg = !right->simple();
+
+    uint32_t lsrc = lcsg ? regVal : (uint32_t)entityIndex;
+    left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, reg);
+    uint32_t rsrc = (rcsg && lcsg) ? regVal + 1 : (rcsg ? regVal : (uint32_t)entityIndex);
+    right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal);
+
     *(steps++) = {
         op,
-        left->simple() ? lei : (uint32_t)REG_L,
-        right->simple() ? rei : (uint32_t)REG_R,
-        toLeft.value_or(true) ? (uint32_t)REG_L : (uint32_t)REG_R
+        lcsg ? (uint32_t)SRC_REG :(uint32_t)SRC_VAL,
+        lsrc,
+        rcsg ? (uint32_t)SRC_REG : (uint32_t)SRC_VAL,
+        rsrc,
+        regVal
     };
-}
-
-void entities::csg_entity::sort_nodes()
-{
-    if (entity_height(left) < entity_height(right))
-    {
-        std::swap(left, right);
-        FLIP_OP(op);
-    }
 }
 
 entities::sphere3::sphere3(float xcenter, float ycenter, float zcenter, float rad)
@@ -153,16 +150,3 @@ void entities::gyroid::write_render_bytes(uint8_t*& bytes) const
 }
 
 #pragma warning(pop)
-
-size_t entities::entity_height(const entity* const ent)
-{
-    if (ent->simple())
-    {
-        return 0;
-    }
-    else
-    {
-        const csg_entity* const csg = dynamic_cast<const csg_entity* const>(ent);
-        return std::max(entity_height(csg->left), entity_height(csg->right)) + 1;
-    }
-}

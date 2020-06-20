@@ -21,6 +21,7 @@ extern "C"
 #include <optional>
 #include <iostream>
 #include <algorithm>
+#include <stack>
 
 namespace entities
 {
@@ -35,7 +36,7 @@ namespace entities
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const = 0;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft = std::nullopt) const = 0;
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const = 0;
     };
 
     struct csg_entity : public entity
@@ -51,8 +52,7 @@ namespace entities
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft = std::nullopt) const;
-        void sort_nodes();
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
     };
 
     struct simple_entity : public entity
@@ -63,7 +63,7 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const = 0;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<bool> toLeft = std::nullopt) const;
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
     };
 
     struct box3 : public simple_entity
@@ -98,7 +98,5 @@ namespace entities
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
-
-    static size_t entity_height(const entity* const ent);
 }
 #pragma warning(pop)

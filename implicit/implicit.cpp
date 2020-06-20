@@ -30,7 +30,10 @@ static cl::Context s_context;
 static cl::CommandQueue s_queue;
 static uint32_t s_pboId = 0;
 static cl::Program s_program;
-static cl::make_kernel<cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3>* s_kernel;
+static cl::make_kernel<
+    cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
+    cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+>* s_kernel;
 
 static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
 static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
@@ -38,6 +41,7 @@ static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
 static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
+static cl::LocalSpaceArg s_regBuf; // Register to store intermediate csg values.
 static size_t s_numCurrentEntities = 0;
 static size_t s_opStepCount = 0;
 
@@ -189,7 +193,7 @@ static void init_ocl()
 
         s_kernel = new cl::make_kernel<
             cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-            cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+            cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
         >(s_program, "k_trace");
 
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
@@ -197,6 +201,7 @@ static void init_ocl()
         s_localMemSize = devices[0].getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
         s_maxLocalBufSize = s_localMemSize / 2;
         s_valueBuf = cl::Local(s_maxLocalBufSize);
+        s_regBuf = cl::Local(s_maxLocalBufSize);
         s_workGroupSize =
             std::min((size_t)WIN_W, std::min(
                 devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
@@ -302,6 +307,7 @@ static void render()
                 s_typeBuf,
                 s_offsetBuf,
                 s_valueBuf,
+                s_regBuf,
                 (cl_uint)s_numCurrentEntities,
                 s_opStepBuf,
                 (cl_uint)s_opStepCount,
@@ -326,7 +332,7 @@ int main()
     entities::gyroid g(8.0f, 0.2f);
 
     entities::box3 b1(-a1, -a1, -a1, a1, a1, a1);
-    entities::sphere3 ss1(-a2, -a2,  a2, 1.8f);
+    entities::sphere3 ss1( a2, 0, 0, 1.8f);
     entities::sphere3 ss2( a2, -a2,  a2, 1.8f); entities::csg_entity ssu1(&ss1, &ss2, op_type::OP_UNION);
     /*entities::sphere3 ss3( a2,  a2,  a2, 1.8f); entities::csg_entity ssu2(&ssu1, &ss3, op_type::OP_UNION);
     entities::sphere3 ss4(-a2,  a2,  a2, 1.8f); entities::csg_entity ssu3(&ssu2, &ss4, op_type::OP_UNION);
@@ -336,7 +342,7 @@ int main()
     entities::sphere3 ss8(-a2,  a2, -a2, 1.8f); entities::csg_entity ssu7(&ssu6, &ss8, op_type::OP_UNION);*/
 
     entities::box3 b2(-a2, -a2, -a2, a2, a2, a2);
-    entities::sphere3 sb1(-a2, -a2,  a2, 1.9f);
+    entities::sphere3 sb1( a2, 0, 0, 1.85f);
     entities::sphere3 sb2( a2, -a2,  a2, 1.9f); entities::csg_entity sbu1(&sb1, &sb2, op_type::OP_UNION);
     /*entities::sphere3 sb3( a2,  a2,  a2, 1.9f); entities::csg_entity sbu2(&sbu1, &sb3, op_type::OP_UNION);
     entities::sphere3 sb4(-a2,  a2,  a2, 1.9f); entities::csg_entity sbu3(&sbu2, &sb4, op_type::OP_UNION);
@@ -347,8 +353,8 @@ int main()
 
     /*entities::csg_entity outer(&s1, &fs12, op_type::OP_SUBTRACTION);
     entities::csg_entity inner(&s2, &fs11, op_type::OP_SUBTRACTION);*/
-    entities::csg_entity outer(&b1, &ssu1, OP_SUBTRACTION);
-    entities::csg_entity inner(&b2, &sbu1, OP_SUBTRACTION);
+    entities::csg_entity outer(&b1, &ss1, OP_SUBTRACTION);
+    entities::csg_entity inner(&b2, &sb1, OP_SUBTRACTION);
 
     entities::csg_entity c1(&outer, &g, op_type::OP_INTERSECTION);
     entities::csg_entity ent(&inner, &c1, op_type::OP_UNION);
