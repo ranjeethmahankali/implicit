@@ -83,8 +83,14 @@ void entities::csg_entity::copy_render_data(
     bool lcsg = !left->simple();
     bool rcsg = !right->simple();
 
+    if (regVal >= MAX_ENTITY_COUNT - 2)
+    {
+        std::cerr << "Too many entities. Out of resources. Aborting...\n";
+        exit(1);
+    }
+
     uint32_t lsrc = lcsg ? regVal : (uint32_t)entityIndex;
-    left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, reg);
+    left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal);
     uint32_t rsrc = (rcsg && lcsg) ? regVal + 1 : (rcsg ? regVal : (uint32_t)entityIndex);
     right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal);
 

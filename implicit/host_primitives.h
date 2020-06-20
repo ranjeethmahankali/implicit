@@ -23,6 +23,8 @@ extern "C"
 #include <algorithm>
 #include <memory>
 
+constexpr size_t MAX_ENTITY_COUNT = 32;
+
 namespace entities
 {
     struct entity

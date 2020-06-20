@@ -10,7 +10,6 @@ namespace cl_kernel_sources
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
 #define PACKED __attribute__((packed))
-#define REG_STACK_SIZE 8
 #define SRC_REG 1
 #define SRC_VAL 2
 #define ENT_TYPE_BOX 1
