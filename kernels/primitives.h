@@ -1,4 +1,4 @@
-#define REG_STACK_SIZE 4
+#define REG_STACK_SIZE 8
 #define SRC_REG 1
 #define SRC_VAL 2
 

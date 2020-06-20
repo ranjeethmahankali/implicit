@@ -2,6 +2,7 @@
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
+#define STEP_FOS 0.9f
 
 #include "kernel_primitives.h"
 
@@ -53,8 +54,8 @@ uint sphere_trace(global uchar* packed,
       found = true;
       break;
     }
-    pt += dir * d;
-    if (i > 5 && (fabs(pt.x) > BOUND ||
+    pt += dir * d * STEP_FOS;
+    if (i > 3 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
   }
@@ -68,7 +69,6 @@ uint sphere_trace(global uchar* packed,
   d = dot(norm, -dir);
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;
-  /* printf("%.3f\n", cl); */
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
   return colorToInt(color1);
 }

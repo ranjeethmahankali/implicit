@@ -17,3 +17,23 @@ namespace gl_util
     bool log_gl_errors(const char* function, const char* file, uint32_t line);
     void clear_gl_errors();
 }
+
+namespace util
+{
+    template<typename T, typename size_t_inserter>
+    void factorize(T num, size_t_inserter inserter)
+    {
+        T f = 2;
+        while (f <= num)
+        {
+            if (num % f == 0)
+            {
+                *(inserter++) = f;
+                num /= f;
+                f = 2;
+                continue;
+            }
+            f++;
+        }
+    };
+}

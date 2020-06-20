@@ -5,11 +5,12 @@ namespace cl_kernel_sources
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
+#define STEP_FOS 0.9f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
 #define PACKED __attribute__((packed))
-#define REG_STACK_SIZE 4
+#define REG_STACK_SIZE 8
 #define SRC_REG 1
 #define SRC_VAL 2
 #define ENT_TYPE_BOX 1
@@ -71,7 +72,7 @@ float f_sphere(global uchar* ptr,
   float radius = sphere->radius;
   return (length(*pt -
                  (float3)(center[0], center[1], center[2])) -
-          fabs(radius)) / 2.0f;
+          fabs(radius));
 }
 float f_gyroid(global uchar* ptr,
                float3* pt)
@@ -192,8 +193,8 @@ uint sphere_trace(global uchar* packed,
       found = true;
       break;
     }
-    pt += dir * d;
-    if (i > 5 && (fabs(pt.x) > BOUND ||
+    pt += dir * d * STEP_FOS;
+    if (i > 3 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
   }
@@ -206,7 +207,6 @@ uint sphere_trace(global uchar* packed,
   d = dot(norm, -dir);
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;
-  /* printf("%.3f\n", cl); */
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
   return colorToInt(color1);
 }

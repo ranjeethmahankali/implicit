@@ -22,6 +22,7 @@ std::cerr << "OpenCL Error: " << cl_err_str(err.err()) << std::endl;\
 exit(err.err());\
 }
 
+//static constexpr uint32_t WIN_W = 720, WIN_H = 640;
 static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 //static constexpr uint32_t WIN_W = 1, WIN_H = 1;
 static GLFWwindow* s_window;
@@ -51,7 +52,7 @@ static size_t s_maxBufSize = 0;
 static size_t s_maxLocalBufSize = 0;
 static size_t s_workGroupSize = 0;
 
-constexpr static size_t MAX_ENTITY_COUNT = 64;
+constexpr static size_t MAX_ENTITY_COUNT = 32;
 
 static void init_ogl()
 {
@@ -202,10 +203,27 @@ static void init_ocl()
         s_maxLocalBufSize = s_localMemSize / 4;
         s_valueBuf = cl::Local(s_maxLocalBufSize);
         s_regBuf = cl::Local(s_maxLocalBufSize);
+        size_t width = (size_t)WIN_W;
+
+        std::vector<size_t> factors;
+        auto fIter = std::back_inserter(factors);
+        util::factorize(width, fIter);
+        std::sort(factors.begin(), factors.end());
+
         s_workGroupSize =
-            std::min((size_t)WIN_W, std::min(
+            std::min(width, std::min(
                 devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
                 (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * MAX_ENTITY_COUNT))));
+        if (width % s_workGroupSize)
+        {
+            size_t newSize = width;
+            for (size_t f : factors)
+            {
+                newSize /= f;
+                if (newSize <= s_workGroupSize) break;
+            }
+            s_workGroupSize = newSize;
+        }
     }
     CATCH_EXIT_CL_ERR;
 };
@@ -360,7 +378,7 @@ static entities::csg_entity test_heavy_part()
                             new sphere3(a2, -a2, -a2, 1.8f), op_type::OP_UNION),
                         new sphere3(a2, a2, -a2, 1.8f), op_type::OP_UNION),
                     new sphere3(-a2, a2, -a2, 1.8f), op_type::OP_UNION), OP_SUBTRACTION),
-            new gyroid(8.0f, 0.2f), op_type::OP_INTERSECTION), op_type::OP_UNION);
+            new gyroid(10.0f, 0.2f), op_type::OP_INTERSECTION), op_type::OP_UNION);
 }
 
 int main()

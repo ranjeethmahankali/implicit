@@ -34,7 +34,7 @@ float f_sphere(global uchar* ptr,
   float radius = sphere->radius;
   return (length(*pt -
                  (float3)(center[0], center[1], center[2])) -
-          fabs(radius)) / 2.0f;
+          fabs(radius));
 }
 
 float f_gyroid(global uchar* ptr,
