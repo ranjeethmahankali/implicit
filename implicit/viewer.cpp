@@ -60,8 +60,9 @@ static size_t s_workGroupSize = 0;
 static std::mutex s_mutex;
 static std::condition_variable s_cv;
 static bool s_pauseRender = false;
+static bool s_shouldExit = false;
 
-bool gl_util::log_gl_errors(const char* function, const char* file, uint32_t line)
+bool viewer::log_gl_errors(const char* function, const char* file, uint32_t line)
 {
     static bool found_error = false;
     while (GLenum error = glGetError())
@@ -84,7 +85,7 @@ bool gl_util::log_gl_errors(const char* function, const char* file, uint32_t lin
     }
 }
 
-void gl_util::clear_gl_errors()
+void viewer::clear_gl_errors()
 {
     // Just loop over and consume all pending errors.
     GLenum error = glGetError();
@@ -94,7 +95,7 @@ void gl_util::clear_gl_errors()
     }
 }
 
-void gl_util::init_ogl()
+void viewer::init_ogl()
 {
     /* Initialize the library */
     glfwWindowHint(GLFW_VERSION_MAJOR, 4);
@@ -132,6 +133,13 @@ void gl_util::init_ogl()
     GL_CALL(glfwSetCursorPosCallback(s_window, camera::on_mouse_move));
     GL_CALL(glfwSetMouseButtonCallback(s_window, camera::on_mouse_button));
     GL_CALL(glfwSetScrollCallback(s_window, camera::on_mouse_scroll));
+}
+
+void viewer::close_window()
+{
+    viewer::pause_render_loop();
+    s_shouldExit = true;
+    viewer::resume_render_loop();
 }
 
 static constexpr glm::vec3 unit_z = { 0.0f, 0.0f, 1.0f };
@@ -298,7 +306,11 @@ static const char* viewer::cl_err_str(cl_int err)
 
 bool viewer::window_should_close()
 {
-    return glfwWindowShouldClose(s_window);
+    pause_render_loop();
+    bool close;
+    close = glfwWindowShouldClose(s_window);
+    resume_render_loop();
+    return close;
 }
 
 void viewer::acquire_lock()
@@ -324,7 +336,7 @@ uint32_t viewer::win_width()
 void viewer::render_loop()
 {
     /* Loop until the user closes the window */
-    while (!viewer::window_should_close())
+    while (!viewer::window_should_close() && !s_shouldExit)
     {
         viewer::acquire_lock();
         viewer::render();
@@ -346,6 +358,7 @@ void viewer::render_loop()
 
 void viewer::stop()
 {
+    GL_CALL(glfwSetWindowShouldClose(s_window, GL_TRUE));
     glfwTerminate();
     delete s_kernel;
 }
@@ -475,6 +488,19 @@ void viewer::init_buffers()
     CATCH_EXIT_CL_ERR;
 }
 
+void viewer::pause_render_loop()
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_pauseRender = true;
+}
+
+void viewer::resume_render_loop()
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_pauseRender = false;
+    s_cv.notify_one();
+}
+
 template <typename T>
 void write_buf(cl::Buffer& buffer, T* data, size_t size)
 {
@@ -493,12 +519,7 @@ void viewer::add_render_data(uint8_t* bytes, size_t nBytes, uint8_t* types, uint
 {
     try
     {
-        // Pause the render loop.
-        {
-            std::lock_guard<std::mutex> lock(s_mutex);
-            s_pauseRender = true;
-        }
-
+        pause_render_loop();
         write_buf(s_packedBuf, bytes, nBytes);
         write_buf(s_typeBuf, types, nEntities);
         write_buf(s_offsetBuf, offsets, nEntities);
@@ -507,11 +528,7 @@ void viewer::add_render_data(uint8_t* bytes, size_t nBytes, uint8_t* types, uint
         s_opStepCount = nSteps;
 
         // Resume the render loop.
-        {
-            std::lock_guard<std::mutex> lock(s_mutex);
-            s_pauseRender = false;
-            s_cv.notify_one();
-        }
+        resume_render_loop();
     }
     CATCH_EXIT_CL_ERR;
 }

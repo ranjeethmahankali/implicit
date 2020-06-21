@@ -15,9 +15,9 @@
 
 #ifdef _DEBUG
 #define GL_CALL(fncall) {\
-gl_util::clear_gl_errors();\
+viewer::clear_gl_errors();\
 fncall;\
-if (gl_util::log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
+if (viewer::log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
 }
 #else
 #define GL_CALL(fncall) fncall
@@ -37,15 +37,12 @@ namespace camera
     static void capture_mouse_pos(double xpos, double ypos);
 }
 
-namespace gl_util
+namespace viewer
 {
     bool log_gl_errors(const char* function, const char* file, uint32_t line);
     void clear_gl_errors();
     void init_ogl();
-}
-
-namespace viewer
-{
+    void close_window();
     static const char* cl_err_str(cl_int err);
     bool window_should_close();
     void acquire_lock();
@@ -57,6 +54,8 @@ namespace viewer
 
     void init_ocl();
     void init_buffers();
+    static void pause_render_loop();
+    static void resume_render_loop();
     static void add_render_data(uint8_t* bytes, size_t nBytes, uint8_t* types, uint32_t* offsets, size_t nEntities, op_step* steps, size_t nSteps);
 
     void show_entity(entities::ent_ref entity);

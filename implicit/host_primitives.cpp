@@ -181,14 +181,6 @@ void entities::cylinder3::write_render_bytes(uint8_t*& bytes) const
     bytes += sizeof(cyl);
 }
 
-std::string entities::ent_ref_str(ent_ref ref)
-{
-    const void* ptr = static_cast<const void*>(ref.get());
-    std::stringstream ss;
-    ss << "ent_ref@" << ptr;
-    return ss.str();
-}
-
 entities::ent_ref entities::get_ent_ref(std::string refStr)
 {
     auto match = s_entMap.find(refStr);
@@ -199,8 +191,12 @@ entities::ent_ref entities::get_ent_ref(std::string refStr)
     return match->second;
 }
 
-entities::ent_ref entities::map_ent(ent_ref ref)
+std::string entities::map_ent(ent_ref ref)
 {
-    s_entMap[ent_ref_str(ref)] = ref;
-    return ref;
+    const void* ptr = static_cast<const void*>(ref.get());
+    std::stringstream ss;
+    ss << "ent_ref@" << ptr;
+    std::string refstr = ss.str();
+    s_entMap[refstr] = ref;
+    return refstr;
 }

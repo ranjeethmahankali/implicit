@@ -57,20 +57,19 @@ static void cmd_loop()
 {
     std::string input;
     std::cout << ">>> ";
-    while (!viewer::window_should_close() && std::getline(std::cin, input))
+    while (!viewer::window_should_close() && !lua_interface::should_exit() && std::getline(std::cin, input))
     {
         if (input.empty())
             continue;
-        //std::cout << "Received input: " << input << std::endl;
         lua_interface::run_cmd(input);
-        //viewer::show_entity(test_cylinder());
-        std::cout << ">>> ";
+        std::cout << "\n>>> ";
     }
+    viewer::close_window();
 };
 
 int main()
 {
-    gl_util::init_ogl();
+    viewer::init_ogl();
     viewer::init_ocl();
     viewer::init_buffers();
     lua_interface::init_lua();

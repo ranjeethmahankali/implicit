@@ -32,9 +32,8 @@ namespace entities
     typedef std::shared_ptr<entity> ent_ref;
     static std::unordered_map<std::string, ent_ref> s_entMap;
     
-    std::string ent_ref_str(ent_ref ref);
     ent_ref get_ent_ref(std::string refStr);
-    ent_ref map_ent(ent_ref ref);
+    std::string map_ent(ent_ref ref);
 
     struct entity
     {
@@ -51,7 +50,7 @@ namespace entities
 
         template <typename T> static ent_ref wrap_simple(T simple)
         {
-            return map_ent(ent_ref(dynamic_cast<entity*>(new T(simple))));
+            return ent_ref(dynamic_cast<entity*>(new T(simple)));
         };
     };
 
@@ -81,7 +80,7 @@ namespace entities
         {
             ent_ref ls(l);
             ent_ref rs(r);
-            return map_ent(ent_ref(new comp_entity(ls, rs, op)));
+            return ent_ref(new comp_entity(ls, rs, op));
         }
 
         template <typename T1, typename T2>
@@ -99,7 +98,7 @@ namespace entities
             op_defn op;
             op.type = op_type::OP_OFFSET;
             op.data.offset_distance = distance;
-            return map_ent(ent_ref(new comp_entity(ep, op)));
+            return ent_ref(new comp_entity(ep, op));
         };
     };
 
