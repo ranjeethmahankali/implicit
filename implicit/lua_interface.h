@@ -41,7 +41,7 @@ namespace lua_interface
     int cylinder(lua_State* L);
     int gyroid(lua_State* L);
     int bunion(lua_State* L);
-    int bintersection(lua_State* L);
+    int bintersect(lua_State* L);
     int bsubtract(lua_State* L);
 
     int exit(lua_State* L);

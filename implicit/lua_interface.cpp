@@ -19,7 +19,7 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, cylinder);
     LUA_REG_FUNC(L, gyroid);
     LUA_REG_FUNC(L, bunion);
-    LUA_REG_FUNC(L, bintersection);
+    LUA_REG_FUNC(L, bintersect);
     LUA_REG_FUNC(L, bsubtract);
 
     LUA_REG_FUNC(L, show);
@@ -106,7 +106,7 @@ int lua_interface::bunion(lua_State* L)
     return boolean_operation(L, op);
 }
 
-int lua_interface::bintersection(lua_State* L)
+int lua_interface::bintersect(lua_State* L)
 {
     op_defn op;
     op.type = op_type::OP_INTERSECTION;
