@@ -94,16 +94,16 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="gl_util.cpp" />
+    <ClCompile Include="viewer.cpp" />
     <ClCompile Include="host_primitives.cpp" />
     <ClCompile Include="implicit.cpp" />
-    <ClCompile Include="camera.cpp" />
+    <ClCompile Include="lua_interface.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gl_util.h" />
+    <ClInclude Include="viewer.h" />
     <ClInclude Include="host_primitives.h" />
     <ClInclude Include="kernel_sources.h" />
-    <ClInclude Include="camera.h" />
+    <ClInclude Include="lua_interface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

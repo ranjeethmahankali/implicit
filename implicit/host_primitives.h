@@ -1,6 +1,6 @@
 #include <stdint.h>
-#pragma warning(push)
-#pragma warning(disable : 26812)
+//#pragma warning(push)
+//#pragma warning(disable : 26812)
 extern "C" 
 {
 #define FLT_TYPE float
@@ -22,6 +22,7 @@ extern "C"
 #include <iostream>
 #include <algorithm>
 #include <memory>
+#include <unordered_map>
 
 constexpr size_t MAX_ENTITY_COUNT = 32;
 
@@ -29,6 +30,11 @@ namespace entities
 {
     struct entity;
     typedef std::shared_ptr<entity> ent_ref;
+    static std::unordered_map<std::string, ent_ref> s_entMap;
+    
+    std::string ent_ref_str(ent_ref ref);
+    ent_ref get_ent_ref(std::string refStr);
+    ent_ref map_ent(ent_ref ref);
 
     struct entity
     {
@@ -45,7 +51,7 @@ namespace entities
 
         template <typename T> static ent_ref wrap_simple(T simple)
         {
-            return ent_ref(dynamic_cast<entity*>(new T(simple)));
+            return map_ent(ent_ref(dynamic_cast<entity*>(new T(simple))));
         };
     };
 
@@ -75,7 +81,7 @@ namespace entities
         {
             ent_ref ls(l);
             ent_ref rs(r);
-            return ent_ref(new comp_entity(ls, rs, op));
+            return map_ent(ent_ref(new comp_entity(ls, rs, op)));
         }
 
         template <typename T1, typename T2>
@@ -93,7 +99,7 @@ namespace entities
             op_defn op;
             op.type = op_type::OP_OFFSET;
             op.data.offset_distance = distance;
-            return ent_ref(new comp_entity(ep, op));
+            return map_ent(ent_ref(new comp_entity(ep, op)));
         };
     };
 
@@ -158,4 +164,4 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 }
-#pragma warning(pop)
+//#pragma warning(pop)

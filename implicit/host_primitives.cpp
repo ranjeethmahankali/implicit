@@ -1,6 +1,7 @@
 #include "host_primitives.h"
 #include <vector>
 #include <algorithm>
+#include <sstream>
 #pragma warning(push)
 #pragma warning(disable : 26812)
 
@@ -178,4 +179,28 @@ void entities::cylinder3::write_render_bytes(uint8_t*& bytes) const
     i_cylinder cyl = { point1.x, point1.y, point1.z, point2.x, point2.y, point2.z, radius };
     std::memcpy(bytes, &cyl, sizeof(cyl));
     bytes += sizeof(cyl);
+}
+
+std::string entities::ent_ref_str(ent_ref ref)
+{
+    const void* ptr = static_cast<const void*>(ref.get());
+    std::stringstream ss;
+    ss << "ent_ref@" << ptr;
+    return ss.str();
+}
+
+entities::ent_ref entities::get_ent_ref(std::string refStr)
+{
+    auto match = s_entMap.find(refStr);
+    if (match == s_entMap.end())
+    {
+        throw "Cannot find entitiy";
+    }
+    return match->second;
+}
+
+entities::ent_ref entities::map_ent(ent_ref ref)
+{
+    s_entMap[ent_ref_str(ref)] = ref;
+    return ref;
 }
