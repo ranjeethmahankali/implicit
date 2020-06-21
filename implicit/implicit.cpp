@@ -19,6 +19,13 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.hpp>
 
+extern "C"
+{
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+};
+
 #define CATCH_EXIT_CL_ERR catch (cl::Error err)\
 {\
 std::cerr << "OpenCL Error: " << cl_err_str(err.err()) << std::endl;\
@@ -58,6 +65,8 @@ static size_t s_workGroupSize = 0;
 static std::mutex s_mutex;
 static std::condition_variable s_cv;
 static bool s_pauseRender = false;
+
+static lua_State* s_luaState = nullptr;
 
 static void init_ogl()
 {
@@ -268,6 +277,23 @@ static void init_buffers()
     CATCH_EXIT_CL_ERR;
 }
 
+static void init_lua()
+{
+    if (s_luaState)
+        return;
+    s_luaState = luaL_newstate();
+    luaL_openlibs(s_luaState);
+};
+
+static void run_lua_cmd(const std::string& cmd)
+{
+    int ret = luaL_dostring(s_luaState, cmd.c_str());
+    if (ret != LUA_OK)
+    {
+        std::cerr << "Lua Error: " << lua_tostring(s_luaState, -1) << std::endl;
+    }
+};
+
 template <typename T>
 void write_buf(cl::Buffer& buffer, T* data, size_t size)
 {
@@ -298,9 +324,6 @@ void show_entity(entities::ent_ref entity)
         std::vector<uint32_t> offsets(nEntities);
         std::vector<uint8_t> types(nEntities);
         std::vector<op_step> steps(nSteps);
-
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
 
         // Copy the render data into these buffers.
         {
@@ -407,14 +430,15 @@ static entities::ent_ref test_cylinder()
 static void cmd_loop()
 {
     std::string input;
-    while (!glfwWindowShouldClose(s_window))
+    std::cout << ">>> ";
+    while (!glfwWindowShouldClose(s_window) && std::getline(std::cin, input))
     {
-        std::cout << ">>> ";
-        std::cin >> input;
         if (input.empty())
             continue;
-        std::cout << "Received input: " << input << std::endl;
+        //std::cout << "Received input: " << input << std::endl;
+        run_lua_cmd(input);
         show_entity(test_cylinder());
+        std::cout << ">>> ";
     }
 };
 
@@ -423,6 +447,7 @@ int main()
     init_ogl();
     init_ocl();
     init_buffers();
+    init_lua();
 
     std::thread cmdThread(cmd_loop);
 
