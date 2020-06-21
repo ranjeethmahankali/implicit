@@ -38,6 +38,8 @@ namespace lua_interface
     int show(lua_State* L);
     int box(lua_State* L);
     int sphere(lua_State* L);
+    int cylinder(lua_State* L);
+    int gyroid(lua_State* L);
     int bunion(lua_State* L);
     int bintersection(lua_State* L);
     int bsubtract(lua_State* L);

@@ -16,6 +16,8 @@ void lua_interface::init_functions()
     lua_State* L = state();
     LUA_REG_FUNC(L, box);
     LUA_REG_FUNC(L, sphere);
+    LUA_REG_FUNC(L, cylinder);
+    LUA_REG_FUNC(L, gyroid);
     LUA_REG_FUNC(L, bunion);
     LUA_REG_FUNC(L, bintersection);
     LUA_REG_FUNC(L, bsubtract);
@@ -67,6 +69,33 @@ int lua_interface::sphere(lua_State* L)
 
     using namespace entities;
     push_entity(L, entity::wrap_simple(sphere3(center[0], center[1], center[2], radius)));
+    return 1;
+}
+
+int lua_interface::cylinder(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 7)
+        luathrow(L, "Cylinder creation requires exactly 7 arguments.");
+    float p1[3], p2[3], radius;
+    for (int i = 0; i < 3; i++)
+        p1[i] = read_number<float>(L, i + 1);
+    for (int i = 0; i < 3; i++)
+        p2[i] = read_number<float>(L, i + 4);
+    radius = read_number<float>(L, 7);
+    push_entity(L, entities::entity::wrap_simple(entities::cylinder3(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], radius)));
+    return 1;
+}
+
+int lua_interface::gyroid(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 2)
+        luathrow(L, "Gyroid creation requires exactly 2 arguments.");
+    
+    float scale = read_number<float>(L, 1);
+    float thickness = read_number<float>(L, 2);
+    push_entity(L, entities::entity::wrap_simple(entities::gyroid(scale, thickness)));
     return 1;
 }
 
