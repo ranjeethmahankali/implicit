@@ -149,6 +149,7 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
 
 void lua_interface::push_entity(lua_State* L, entities::ent_ref ref)
 {
+    viewer::show_entity(ref);
     std::string refstr = entities::map_ent(ref);
     lua_pushstring(L, refstr.c_str());
 }
