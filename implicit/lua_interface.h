@@ -43,6 +43,7 @@ namespace lua_interface
     int bunion(lua_State* L);
     int bintersect(lua_State* L);
     int bsubtract(lua_State* L);
+    int offset(lua_State* L);
 
     int exit(lua_State* L);
     int quit(lua_State* L);

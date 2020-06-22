@@ -21,6 +21,7 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, bunion);
     LUA_REG_FUNC(L, bintersect);
     LUA_REG_FUNC(L, bsubtract);
+    LUA_REG_FUNC(L, offset);
 
     LUA_REG_FUNC(L, show);
     LUA_REG_FUNC(L, exit);
@@ -118,6 +119,19 @@ int lua_interface::bsubtract(lua_State* L)
     op_defn op;
     op.type = op_type::OP_SUBTRACTION;
     return boolean_operation(L, op);
+}
+
+int lua_interface::offset(lua_State* L)
+{
+    using namespace entities;
+    int nargs = lua_gettop(L);
+    if (nargs != 2)
+        luathrow(L, "Offset operation takes exactly 2 arguments.");
+    
+    ent_ref ref = read_entity(L, 1);
+    float dist = read_number<float>(L, 2);
+    push_entity(L, comp_entity::make_offset(ref, dist));
+    return 1;
 }
 
 std::string lua_interface::read_string(lua_State* L, int i)
