@@ -1,6 +1,6 @@
 #include <stdint.h>
-//#pragma warning(push)
-//#pragma warning(disable : 26812)
+#pragma warning(push)
+#pragma warning(disable : 26812)
 extern "C" 
 {
 #define FLT_TYPE float
@@ -30,11 +30,7 @@ namespace entities
 {
     struct entity;
     typedef std::shared_ptr<entity> ent_ref;
-    static std::unordered_map<std::string, ent_ref> s_entMap;
     
-    ent_ref get_ent_ref(std::string refStr);
-    std::string map_ent(ent_ref ref);
-
     struct entity
     {
     protected:
@@ -48,7 +44,7 @@ namespace entities
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const = 0;
 
-        template <typename T> static ent_ref wrap_simple(T simple)
+        template <typename T> static ent_ref wrap_simple(const T& simple)
         {
             return ent_ref(dynamic_cast<entity*>(new T(simple)));
         };
@@ -163,4 +159,4 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
 }
-//#pragma warning(pop)
+#pragma warning(pop)

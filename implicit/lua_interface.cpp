@@ -11,6 +11,12 @@ void lua_interface::init_lua()
     init_functions();
 }
 
+void lua_interface::stop()
+{
+    lua_State* L = state();
+    lua_close(L);
+}
+
 void lua_interface::init_functions()
 {
     lua_State* L = state();
@@ -26,6 +32,18 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, show);
     LUA_REG_FUNC(L, exit);
     LUA_REG_FUNC(L, quit);
+}
+
+int lua_interface::delete_entity(lua_State* L)
+{
+    using namespace entities;
+    //std::cout << "Deleting entity in lua ...." << std::endl;
+    ent_ref* ref = (ent_ref*)lua_touserdata(L, 1);
+    auto oldcount = ref->use_count();
+    //std::cout << "This object has " << oldcount << " owners before\n";
+    ref->~shared_ptr();
+    //if (oldcount > 1) std::cout << "This object has " << ref->use_count() << " owners after\n";
+    return 0;
 }
 
 void lua_interface::run_cmd(const std::string& line)
@@ -144,8 +162,11 @@ std::string lua_interface::read_string(lua_State* L, int i)
 
 entities::ent_ref lua_interface::read_entity(lua_State* L, int i)
 {
-    std::string refstr = read_string(L, i);
-    return entities::get_ent_ref(refstr);
+    using namespace entities;
+    if (!lua_isuserdata(L, i))
+        luathrow(L, "Is not an entity...");
+    ent_ref ref = *(ent_ref*)lua_touserdata(L, i);
+    return ref;
 }
 
 int lua_interface::boolean_operation(lua_State* L, op_defn op)
@@ -161,11 +182,18 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
     return 1;
 }
 
-void lua_interface::push_entity(lua_State* L, entities::ent_ref ref)
+void lua_interface::push_entity(lua_State* L, const entities::ent_ref& ref)
 {
+    using namespace entities;
+    auto udata = (ent_ref*)lua_newuserdata(L, sizeof(ent_ref)); // Allocate space in lua's memory.
+    new (udata) ent_ref(ref); // Copy constrct the reference in the memory allocated above.
+    // Make a new table and push the functions to tell lua's GC how to delete this object.
+    lua_newtable(L);
+    lua_pushstring(L, "__gc");
+    lua_pushcfunction(L, delete_entity);;
+    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
     viewer::show_entity(ref);
-    std::string refstr = entities::map_ent(ref);
-    lua_pushstring(L, refstr.c_str());
 }
 
 int lua_interface::show(lua_State* L)
@@ -174,9 +202,8 @@ int lua_interface::show(lua_State* L)
     if (nargs != 1)
         luathrow(L, "Show function expects 1 argument.");
     
-    std::string refstr = lua_tostring(L, 1);
     using namespace entities;
-    ent_ref ref = get_ent_ref(refstr);
+    ent_ref ref = read_entity(L, 1);
     viewer::show_entity(ref);
     return 0;
 }

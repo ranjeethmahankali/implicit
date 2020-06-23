@@ -79,5 +79,6 @@ int main()
 
     cmdThread.join();
     viewer::stop();
+    lua_interface::stop();
     return 0;
 }

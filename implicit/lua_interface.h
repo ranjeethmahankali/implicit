@@ -16,7 +16,9 @@ static lua_State* s_luaState = nullptr;
 namespace lua_interface
 {
     void init_lua();
+    void stop();
     static void init_functions();
+    static int delete_entity(lua_State* L);
 
     lua_State* state();
     bool should_exit();
@@ -33,7 +35,7 @@ namespace lua_interface
     static entities::ent_ref read_entity(lua_State* L, int i);
     static int boolean_operation(lua_State* L, op_defn op);
 
-    void push_entity(lua_State* L, entities::ent_ref ref);
+    void push_entity(lua_State* L, const entities::ent_ref& ref);
 
     int show(lua_State* L);
     int box(lua_State* L);

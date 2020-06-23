@@ -180,23 +180,3 @@ void entities::cylinder3::write_render_bytes(uint8_t*& bytes) const
     std::memcpy(bytes, &cyl, sizeof(cyl));
     bytes += sizeof(cyl);
 }
-
-entities::ent_ref entities::get_ent_ref(std::string refStr)
-{
-    auto match = s_entMap.find(refStr);
-    if (match == s_entMap.end())
-    {
-        throw "Cannot find entitiy";
-    }
-    return match->second;
-}
-
-std::string entities::map_ent(ent_ref ref)
-{
-    const void* ptr = static_cast<const void*>(ref.get());
-    std::stringstream ss;
-    ss << "ent_ref@" << ptr;
-    std::string refstr = ss.str();
-    s_entMap[refstr] = ref;
-    return refstr;
-}
