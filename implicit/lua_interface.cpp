@@ -1,4 +1,5 @@
 #include "lua_interface.h"
+#include <fstream>
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
 bool s_shouldExit = false;
 
@@ -28,6 +29,8 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, bintersect);
     LUA_REG_FUNC(L, bsubtract);
     LUA_REG_FUNC(L, offset);
+
+    LUA_REG_FUNC(L, load);
 
     LUA_REG_FUNC(L, show);
     LUA_REG_FUNC(L, exit);
@@ -152,6 +155,33 @@ int lua_interface::offset(lua_State* L)
     return 1;
 }
 
+int lua_interface::load(lua_State* L)
+{
+    using namespace entities;
+    int nargs = lua_gettop(L);
+    if (nargs != 1)
+        luathrow(L, "Loading operation requires exactly 1 filepath argument.");
+
+    std::string filepath = read_string(L, 1);
+    std::ifstream f;
+    f.open(filepath);
+    if (!f.is_open())
+    {
+        luathrow(L, "Cannot open file");
+        return 0;
+    }
+
+    std::string line;
+    std::cout << std::endl;
+    while (std::getline(f, line))
+    {
+        std::cout << "\t" << line << std::endl;
+        run_cmd(line);
+    }
+    std::cout << std::endl;
+    return 0;
+}
+
 std::string lua_interface::read_string(lua_State* L, int i)
 {
     if (!lua_isstring(L, i))
@@ -164,7 +194,7 @@ entities::ent_ref lua_interface::read_entity(lua_State* L, int i)
 {
     using namespace entities;
     if (!lua_isuserdata(L, i))
-        luathrow(L, "Is not an entity...");
+        luathrow(L, "Not an entity...");
     ent_ref ref = *(ent_ref*)lua_touserdata(L, i);
     return ref;
 }
@@ -232,6 +262,8 @@ bool lua_interface::should_exit()
 
 void lua_interface::luathrow(lua_State* L, const std::string& error)
 {
+    std::cout << std::endl;
     lua_pushstring(L, error.c_str());
     lua_error(L);
+    std::cout << std::endl << std::endl;
 }
