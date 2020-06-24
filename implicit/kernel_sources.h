@@ -138,8 +138,12 @@ float apply_op(op_defn op, float a, float b)
 {
   switch(op.type){
   case OP_NONE: return a;
-  case OP_UNION: return min(a, b);
-  case OP_INTERSECTION: return max(a, b);
+  case OP_UNION:
+    return (a > op.data.blend_radius || b > op.data.blend_radius) ?
+      min(a, b) : (a + b) * 0.5f;
+  case OP_INTERSECTION:
+    return (a > op.data.blend_radius || b > op.data.blend_radius) ?
+      max(a, b) : (a + b) * 0.5f;
   case OP_SUBTRACTION: return max(a, -b);
   case OP_OFFSET: return a - op.data.offset_distance;
   default: return a;

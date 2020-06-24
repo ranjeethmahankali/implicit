@@ -203,11 +203,13 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
 {
     using namespace entities;
     int nargs = lua_gettop(L);
-    if (nargs != 2)
-        luathrow(L, "Boolean operation requires 2 arguments.");
+    if (nargs != 2 && nargs != 3)
+        luathrow(L, "Boolean either 2 entity args and an optional blend radius arg.");
 
     ent_ref ref1 = read_entity(L, 1);
     ent_ref ref2 = read_entity(L, 2);
+    if (nargs == 3)
+        op.data.blend_radius = read_number<float>(L, 3);
     push_entity(L, comp_entity::make_csg(ref1, ref2, op));
     return 1;
 }

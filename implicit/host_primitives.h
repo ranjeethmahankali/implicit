@@ -84,6 +84,7 @@ namespace entities
         {
             op_defn opdef;
             opdef.type = op;
+            opdef.data.blend_radius = 0;
             return make_csg(l, r, opdef);
         };
 
