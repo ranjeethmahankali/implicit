@@ -159,5 +159,16 @@ namespace entities
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
+
+    struct schwarz : public simp_entity
+    {
+        float scale;
+        float thickness;
+        schwarz(float scale, float thickness);
+
+        virtual uint8_t type() const;
+        virtual size_t num_render_bytes() const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
+    };
 }
 #pragma warning(pop)

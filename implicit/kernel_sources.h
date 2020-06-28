@@ -12,11 +12,12 @@ namespace cl_kernel_sources
 #define PACKED __attribute__((packed))
 #define SRC_REG 1
 #define SRC_VAL 2
-#define ENT_TYPE_CSG        0
-#define ENT_TYPE_BOX        1
-#define ENT_TYPE_SPHERE     2
-#define ENT_TYPE_CYLINDER   3
-#define ENT_TYPE_GYROID     4
+#define ENT_TYPE_CSG                    0
+#define ENT_TYPE_BOX                    1
+#define ENT_TYPE_SPHERE                 2
+#define ENT_TYPE_CYLINDER               3
+#define ENT_TYPE_GYROID                 4
+#define ENT_TYPE_SCHWARZ                5
 typedef struct PACKED
 {
   FLT_TYPE bounds[6];
@@ -37,6 +38,11 @@ typedef struct PACKED
   FLT_TYPE scale;
   FLT_TYPE thickness;
 } i_gyroid;
+typedef struct PACKED
+{
+    FLT_TYPE scale;
+    FLT_TYPE thickness;
+} i_schwarz;
 typedef enum
 {
     OP_NONE = 0,
@@ -122,6 +128,17 @@ float f_gyroid(global uchar* ptr,
   float factor = 4.0f / thick;
   return (fabs(sx * cy + sy * cz + sz * cx) - thick) / factor;
 }
+float f_schwarz(global uchar* ptr,
+                float3* pt)
+{
+  CAST_TYPE(i_schwarz, lattice, ptr);
+  float scale = lattice->scale;
+  float thick = lattice->thickness;
+  float factor = 8.0f / thick;
+  return (fabs(cos((*pt).x * scale) +
+               cos((*pt).y * scale) +
+               cos((*pt).z * scale)) - thick) / factor;
+}
 float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
@@ -130,6 +147,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_BOX: return f_box(ptr, pt);
   case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
+  case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   default: return 1.0f;
   }
@@ -138,12 +156,8 @@ float apply_op(op_defn op, float a, float b)
 {
   switch(op.type){
   case OP_NONE: return a;
-  case OP_UNION:
-    return (a > op.data.blend_radius || b > op.data.blend_radius) ?
-      min(a, b) : (a + b) * 0.5f;
-  case OP_INTERSECTION:
-    return (a > op.data.blend_radius || b > op.data.blend_radius) ?
-      max(a, b) : (a + b) * 0.5f;
+  case OP_UNION: return min(a, b);
+  case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
   case OP_OFFSET: return a - op.data.offset_distance;
   default: return a;

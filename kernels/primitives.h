@@ -1,11 +1,12 @@
 #define SRC_REG 1
 #define SRC_VAL 2
 
-#define ENT_TYPE_CSG        0
-#define ENT_TYPE_BOX        1
-#define ENT_TYPE_SPHERE     2
-#define ENT_TYPE_CYLINDER   3
-#define ENT_TYPE_GYROID     4
+#define ENT_TYPE_CSG                    0
+#define ENT_TYPE_BOX                    1
+#define ENT_TYPE_SPHERE                 2
+#define ENT_TYPE_CYLINDER               3
+#define ENT_TYPE_GYROID                 4
+#define ENT_TYPE_SCHWARZ                5
 
 typedef struct PACKED
 {
@@ -30,6 +31,12 @@ typedef struct PACKED
   FLT_TYPE scale;
   FLT_TYPE thickness;
 } i_gyroid;
+
+typedef struct PACKED
+{
+    FLT_TYPE scale;
+    FLT_TYPE thickness;
+} i_schwarz;
 
 
 typedef enum

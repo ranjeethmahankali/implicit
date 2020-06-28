@@ -180,3 +180,25 @@ void entities::cylinder3::write_render_bytes(uint8_t*& bytes) const
     std::memcpy(bytes, &cyl, sizeof(cyl));
     bytes += sizeof(cyl);
 }
+
+entities::schwarz::schwarz(float s, float t)
+    :scale(s), thickness(t)
+{
+}
+
+uint8_t entities::schwarz::type() const
+{
+    return ENT_TYPE_SCHWARZ;
+}
+
+size_t entities::schwarz::num_render_bytes() const
+{
+    return sizeof(i_schwarz);
+}
+
+void entities::schwarz::write_render_bytes(uint8_t*& bytes) const
+{
+    i_schwarz ient = { scale, thickness };
+    std::memcpy(bytes, &ient, sizeof(ient));
+    bytes += sizeof(ient);
+}

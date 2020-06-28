@@ -25,6 +25,7 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, sphere);
     LUA_REG_FUNC(L, cylinder);
     LUA_REG_FUNC(L, gyroid);
+    LUA_REG_FUNC(L, schwarz);
     LUA_REG_FUNC(L, bunion);
     LUA_REG_FUNC(L, bintersect);
     LUA_REG_FUNC(L, bsubtract);
@@ -118,6 +119,18 @@ int lua_interface::gyroid(lua_State* L)
     float scale = read_number<float>(L, 1);
     float thickness = read_number<float>(L, 2);
     push_entity(L, entities::entity::wrap_simple(entities::gyroid(scale, thickness)));
+    return 1;
+}
+
+int lua_interface::schwarz(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 2)
+        luathrow(L, "Schwarz lattice creation requires exactly 2 arguments.");
+
+    float scale = read_number<float>(L, 1);
+    float thickness = read_number<float>(L, 2);
+    push_entity(L, entities::entity::wrap_simple(entities::schwarz(scale, thickness)));
     return 1;
 }
 
