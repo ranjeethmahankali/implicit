@@ -5,8 +5,9 @@
 #define ENT_TYPE_BOX                    1
 #define ENT_TYPE_SPHERE                 2
 #define ENT_TYPE_CYLINDER               3
-#define ENT_TYPE_GYROID                 4
-#define ENT_TYPE_SCHWARZ                5
+#define ENT_TYPE_HALFSPACE              4
+#define ENT_TYPE_GYROID                 5
+#define ENT_TYPE_SCHWARZ                6
 
 typedef struct PACKED
 {
@@ -25,6 +26,12 @@ typedef struct PACKED
     FLT_TYPE point2[3];
     FLT_TYPE radius;
 } i_cylinder;
+
+typedef struct PACKED
+{
+    FLT_TYPE origin[3];
+    FLT_TYPE normal[3];
+} i_halfspace;
 
 typedef struct PACKED
 {

@@ -202,3 +202,25 @@ void entities::schwarz::write_render_bytes(uint8_t*& bytes) const
     std::memcpy(bytes, &ient, sizeof(ient));
     bytes += sizeof(ient);
 }
+
+entities::halfspace::halfspace(glm::vec3 o, glm::vec3 n)
+    :origin(o), normal(n)
+{
+}
+
+uint8_t entities::halfspace::type() const
+{
+    return ENT_TYPE_HALFSPACE;
+}
+
+size_t entities::halfspace::num_render_bytes() const
+{
+    return sizeof(i_halfspace);
+}
+
+void entities::halfspace::write_render_bytes(uint8_t*& bytes) const
+{
+    i_halfspace ient = { {origin.x, origin.y, origin.z} , {normal.x, normal.y, normal.z} };
+    std::memcpy(bytes, &ient, sizeof(ient));
+    bytes += sizeof(ient);
+}

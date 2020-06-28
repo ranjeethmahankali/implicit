@@ -82,6 +82,19 @@ float f_schwarz(global uchar* ptr,
                cos((*pt).z * scale)) - thick) / factor;
 }
 
+float f_halfspace(global uchar* ptr,
+                  float3* pt)
+{
+  CAST_TYPE(i_halfspace, hspace, ptr);
+  float3 origin = (float3)(hspace->origin[0],
+                           hspace->origin[1],
+                           hspace->origin[2]);
+  float3 normal = normalize((float3)(hspace->normal[0],
+                                     hspace->normal[1],
+                                     hspace->normal[2]));
+  return dot((*pt) - origin, -normal);
+}
+
 float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
@@ -92,6 +105,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
   case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
+  case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
   default: return 1.0f;
   }
 }

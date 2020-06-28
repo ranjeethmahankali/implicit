@@ -183,5 +183,16 @@ namespace entities
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
+
+    struct halfspace : public simp_entity
+    {
+        glm::vec3 origin;
+        glm::vec3 normal;
+        halfspace(glm::vec3, glm::vec3);
+
+        virtual uint8_t type() const;
+        virtual size_t num_render_bytes() const;
+        virtual void write_render_bytes(uint8_t*& bytes) const;
+    };
 }
 #pragma warning(pop)

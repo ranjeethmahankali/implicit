@@ -43,6 +43,7 @@ namespace lua_interface
     int box(lua_State* L);
     int sphere(lua_State* L);
     int cylinder(lua_State* L);
+    int halfspace(lua_State* L);
     int gyroid(lua_State* L);
     int schwarz(lua_State* L);
     int bunion(lua_State* L);

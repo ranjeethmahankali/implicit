@@ -24,6 +24,7 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, box);
     LUA_REG_FUNC(L, sphere);
     LUA_REG_FUNC(L, cylinder);
+    LUA_REG_FUNC(L, halfspace);
     LUA_REG_FUNC(L, gyroid);
     LUA_REG_FUNC(L, schwarz);
     LUA_REG_FUNC(L, bunion);
@@ -108,6 +109,22 @@ int lua_interface::cylinder(lua_State* L)
         p2[i] = read_number<float>(L, i + 4);
     radius = read_number<float>(L, 7);
     push_entity(L, entities::entity::wrap_simple(entities::cylinder3(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], radius)));
+    return 1;
+}
+
+int lua_interface::halfspace(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 6)
+        luathrow(L, "Halfspace creation requires exactly 6 arguments.");
+
+    float coords[6];
+    for (int i = 0; i < 6; i++)
+    {
+        coords[i] = read_number<float>(L, i + 1);
+    }
+
+    push_entity(L, entities::entity::wrap_simple(entities::halfspace({ coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] })));
     return 1;
 }
 

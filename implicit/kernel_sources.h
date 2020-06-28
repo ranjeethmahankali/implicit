@@ -16,8 +16,9 @@ namespace cl_kernel_sources
 #define ENT_TYPE_BOX                    1
 #define ENT_TYPE_SPHERE                 2
 #define ENT_TYPE_CYLINDER               3
-#define ENT_TYPE_GYROID                 4
-#define ENT_TYPE_SCHWARZ                5
+#define ENT_TYPE_HALFSPACE              4
+#define ENT_TYPE_GYROID                 5
+#define ENT_TYPE_SCHWARZ                6
 typedef struct PACKED
 {
   FLT_TYPE bounds[6];
@@ -33,6 +34,11 @@ typedef struct PACKED
     FLT_TYPE point2[3];
     FLT_TYPE radius;
 } i_cylinder;
+typedef struct PACKED
+{
+    FLT_TYPE origin[3];
+    FLT_TYPE normal[3];
+} i_halfspace;
 typedef struct PACKED
 {
   FLT_TYPE scale;
@@ -146,6 +152,18 @@ float f_schwarz(global uchar* ptr,
                cos((*pt).y * scale) +
                cos((*pt).z * scale)) - thick) / factor;
 }
+float f_halfspace(global uchar* ptr,
+                  float3* pt)
+{
+  CAST_TYPE(i_halfspace, hspace, ptr);
+  float3 origin = (float3)(hspace->origin[0],
+                           hspace->origin[1],
+                           hspace->origin[2]);
+  float3 normal = normalize((float3)(hspace->normal[0],
+                                     hspace->normal[1],
+                                     hspace->normal[2]));
+  return dot((*pt) - origin, -normal);
+}
 float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
@@ -156,6 +174,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
   case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
+  case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
   default: return 1.0f;
   }
 }
@@ -167,14 +186,12 @@ float apply_linblend(lin_blend_data op, float a, float b, float3* pt)
     float3 p2 = (float3)(op.p2[0],
                          op.p2[1],
                          op.p2[2]);
-    /* float3 ln = p2 - p1; */
-    /* float modLn = length(ln); */
-    /* ln = normalize(ln); */
-    /* float comp = dot((*pt) - p1, ln) / modLn; */
-    /* comp = min(1.0f, max(0.0f, comp)); */
-    /* return (1.0f - comp) * a + comp * b; */
-    float r = min(1.0f, max(0.0f, ((*pt).z - p1.z) / (p2.z - p1.z)));
-    return (1.0f - r) * a + (r * b);
+    float3 ln = p2 - p1;
+    float modLn = length(ln);
+    ln = normalize(ln);
+    float comp = dot((*pt) - p1, ln) / modLn;
+    comp = min(1.0f, max(0.0f, comp));
+    return (1.0f - comp) * a + comp * b;
 }
 float apply_op(op_defn op, float a, float b, float3* pt)
 {
