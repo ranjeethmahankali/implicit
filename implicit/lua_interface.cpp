@@ -32,6 +32,7 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, bsubtract);
     LUA_REG_FUNC(L, offset);
     LUA_REG_FUNC(L, linblend);
+    LUA_REG_FUNC(L, smoothblend);
 
     LUA_REG_FUNC(L, load);
 
@@ -202,6 +203,25 @@ int lua_interface::linblend(lua_State* L)
     }
 
     push_entity(L, comp_entity::make_linblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
+    return 1;
+}
+
+int lua_interface::smoothblend(lua_State* L)
+{
+    using namespace entities;
+    int nargs = lua_gettop(L);
+    if (nargs != 8)
+        luathrow(L, "Linear blend requires exactly 1 filepath argument.");
+
+    ent_ref e1 = read_entity(L, 1);
+    ent_ref e2 = read_entity(L, 2);
+    float coords[6];
+    for (int i = 3; i < 9; i++)
+    {
+        coords[i - 3] = read_number<float>(L, i);
+    }
+
+    push_entity(L, comp_entity::make_smoothblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
     return 1;
 }
 

@@ -110,6 +110,19 @@ namespace entities
             };
             return ent_ref(new comp_entity(l, r, op));
         };
+
+        template <typename T>
+        static ent_ref make_smoothblend(T l, T r, glm::vec3 p1, glm::vec3 p2)
+        {
+            op_defn op;
+            op.type = op_type::OP_SMOOTHBLEND;
+            op.data.smooth_blend =
+            {
+                {p1.x, p1.y, p1.z},
+                {p2.x, p2.y, p2.z},
+            };
+            return ent_ref(new comp_entity(l, r, op));
+        };
     };
 
     struct simp_entity : public entity

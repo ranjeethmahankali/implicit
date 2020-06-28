@@ -57,17 +57,24 @@ typedef enum
     OP_SUBTRACTION = 3,
     OP_OFFSET = 8,
     OP_LINBLEND = 16,
+    OP_SMOOTHBLEND = 17,
 } op_type;
 typedef struct PACKED
 {
     float p1[3];
     float p2[3];
 } lin_blend_data;
+typedef struct PACKED
+{
+    float p1[3];
+    float p2[3];
+} smooth_blend_data;
 typedef union PACKED
 {
     float blend_radius;
     float offset_distance;
     lin_blend_data lin_blend;
+    smooth_blend_data smooth_blend;
 } op_data;
 typedef struct PACKED
 {
@@ -193,6 +200,22 @@ float apply_linblend(lin_blend_data op, float a, float b, float3* pt)
     comp = min(1.0f, max(0.0f, comp));
     return (1.0f - comp) * a + comp * b;
 }
+float apply_smoothblend(smooth_blend_data op, float a, float b, float3* pt)
+{
+    float3 p1 = (float3)(op.p1[0],
+                         op.p1[1],
+                         op.p1[2]);
+    float3 p2 = (float3)(op.p2[0],
+                         op.p2[1],
+                         op.p2[2]);
+    float3 ln = p2 - p1;
+    float modLn = length(ln);
+    ln = normalize(ln);
+    float comp = dot((*pt) - p1, ln) / modLn;
+    comp = min(1.0f, max(0.0f, comp));
+    comp = 1.0f / (1.0f + pow(comp / (1.0f - comp), -2.0f));
+    return (1.0f - comp) * a + comp * b;
+}
 float apply_op(op_defn op, float a, float b, float3* pt)
 {
   switch(op.type){
@@ -202,6 +225,7 @@ float apply_op(op_defn op, float a, float b, float3* pt)
   case OP_SUBTRACTION: return max(a, -b);
   case OP_OFFSET: return a - op.data.offset_distance;
   case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt);
+  case OP_SMOOTHBLEND: return apply_smoothblend(op.data.smooth_blend, a, b, pt);
     
   default: return a;
   }
