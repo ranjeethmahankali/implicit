@@ -2,7 +2,7 @@
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
-#define STEP_FOS 0.9f
+#define STEP_FOS 0.75f
 
 #include "kernel_primitives.h"
 
@@ -20,9 +20,9 @@ implicit function.*/
 uint colorToInt(float3 rgb)
 {
   uint color = 0xff000000;
-  color |= ((uint)(rgb.x * 255));
-  color |= ((uint)(rgb.y * 255)) << 8;
-  color |= ((uint)(rgb.z * 255)) << 16;
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.x)) * 255));
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.y)) * 255)) << 8;
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.z)) * 255)) << 16;
   return color;
 }
 

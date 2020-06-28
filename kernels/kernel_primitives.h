@@ -96,7 +96,23 @@ float f_simple(global uchar* ptr,
   }
 }
 
-float apply_op(op_defn op, float a, float b)
+float apply_linblend(lin_blend_data op, float a, float b, float3* pt)
+{
+    float3 p1 = (float3)(op.p1[0],
+                         op.p1[1],
+                         op.p1[2]);
+    float3 p2 = (float3)(op.p2[0],
+                         op.p2[1],
+                         op.p2[2]);
+    float3 ln = p2 - p1;
+    float modLn = length(ln);
+    ln = normalize(ln);
+    float comp = dot((*pt) - p1, ln) / modLn;
+    comp = min(1.0f, max(0.0f, comp));
+    return (1.0f - comp) * a + comp * b;
+}
+
+float apply_op(op_defn op, float a, float b, float3* pt)
 {
   switch(op.type){
   case OP_NONE: return a;
@@ -105,6 +121,9 @@ float apply_op(op_defn op, float a, float b)
   case OP_SUBTRACTION: return max(a, -b);
 
   case OP_OFFSET: return a - op.data.offset_distance;
+
+  case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt);
+    
   default: return a;
   }
 }
@@ -145,7 +164,7 @@ float f_entity(global uchar* packed,
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
-    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r);
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r, pt);
   }
   
   return regBuf[bi];

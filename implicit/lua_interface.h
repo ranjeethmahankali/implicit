@@ -49,6 +49,7 @@ namespace lua_interface
     int bintersect(lua_State* L);
     int bsubtract(lua_State* L);
     int offset(lua_State* L);
+    int linblend(lua_State* L);
 
     int load(lua_State* L);
 

@@ -5,7 +5,7 @@ namespace cl_kernel_sources
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
-#define STEP_FOS 0.9f
+#define STEP_FOS 0.75f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
@@ -50,11 +50,18 @@ typedef enum
     OP_INTERSECTION = 2,
     OP_SUBTRACTION = 3,
     OP_OFFSET = 8,
+    OP_LINBLEND = 16,
 } op_type;
+typedef struct PACKED
+{
+    float p1[3];
+    float p2[3];
+} lin_blend_data;
 typedef union PACKED
 {
     float blend_radius;
     float offset_distance;
+    lin_blend_data lin_blend;
 } op_data;
 typedef struct PACKED
 {
@@ -152,7 +159,24 @@ float f_simple(global uchar* ptr,
   default: return 1.0f;
   }
 }
-float apply_op(op_defn op, float a, float b)
+float apply_linblend(lin_blend_data op, float a, float b, float3* pt)
+{
+    float3 p1 = (float3)(op.p1[0],
+                         op.p1[1],
+                         op.p1[2]);
+    float3 p2 = (float3)(op.p2[0],
+                         op.p2[1],
+                         op.p2[2]);
+    /* float3 ln = p2 - p1; */
+    /* float modLn = length(ln); */
+    /* ln = normalize(ln); */
+    /* float comp = dot((*pt) - p1, ln) / modLn; */
+    /* comp = min(1.0f, max(0.0f, comp)); */
+    /* return (1.0f - comp) * a + comp * b; */
+    float r = min(1.0f, max(0.0f, ((*pt).z - p1.z) / (p2.z - p1.z)));
+    return (1.0f - r) * a + (r * b);
+}
+float apply_op(op_defn op, float a, float b, float3* pt)
 {
   switch(op.type){
   case OP_NONE: return a;
@@ -160,6 +184,8 @@ float apply_op(op_defn op, float a, float b)
   case OP_INTERSECTION: return max(a, b);
   case OP_SUBTRACTION: return max(a, -b);
   case OP_OFFSET: return a - op.data.offset_distance;
+  case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt);
+    
   default: return a;
   }
 }
@@ -197,7 +223,7 @@ float f_entity(global uchar* packed,
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
-    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r);
+    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r, pt);
   }
   
   return regBuf[bi];
@@ -215,9 +241,9 @@ implicit function.*/
 uint colorToInt(float3 rgb)
 {
   uint color = 0xff000000;
-  color |= ((uint)(rgb.x * 255));
-  color |= ((uint)(rgb.y * 255)) << 8;
-  color |= ((uint)(rgb.z * 255)) << 16;
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.x)) * 255));
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.y)) * 255)) << 8;
+  color |= ((uint)(min(1.0f, max(0.0f, rgb.z)) * 255)) << 16;
   return color;
 }
 uint sphere_trace(global uchar* packed,

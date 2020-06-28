@@ -47,12 +47,21 @@ typedef enum
     OP_SUBTRACTION = 3,
 
     OP_OFFSET = 8,
+
+    OP_LINBLEND = 16,
 } op_type;
+
+typedef struct PACKED
+{
+    float p1[3];
+    float p2[3];
+} lin_blend_data;
 
 typedef union PACKED
 {
     float blend_radius;
     float offset_distance;
+    lin_blend_data lin_blend;
 } op_data;
 
 typedef struct PACKED
