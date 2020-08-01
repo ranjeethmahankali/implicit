@@ -1,3 +1,4 @@
+// #define CLDEBUG
 #include "raytrace.h"
 
 void perspective_project(float3 camPos,
@@ -28,16 +29,20 @@ void perspective_project(float3 camPos,
 }
 
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
-                    global uchar* packed,
-                    global uchar* types,
-                    global uchar* offsets,
-                    local float* valBuf,
-                    local float* regBuf,
-                    uint nEntities,
-                    global op_step* steps,
-                    uint nSteps,
-                    float3 camPos, // Camera position in spherical coordinates
-                    float3 camTarget)
+                    global uchar* packed, // Bytes of render data for simple bytes.
+                    global uchar* types, // Types of simple entities in the csg tree.
+                    global uchar* offsets, // The byte offsets of simple entities.
+                    local float* valBuf, // The buffer for local use.
+                    local float* regBuf, // More buffer for local use.
+                    uint nEntities, // The number of simple entities.
+                    global op_step* steps, // CSG steps.
+                    uint nSteps, // Number of csg steps.
+                    float3 camPos, // Camera position in spherical coords from target
+                    float3 camTarget // Camera target as a point in R3 space.
+#ifdef CLDEBUG
+                    , uint2 mousePos // Mouse position in pixels.
+#endif
+                    )
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
@@ -50,7 +55,22 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   float tolerance = 0.00001f;
 
   float dTotal = 0;
+
+#ifdef CLDEBUG
+  uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
+#endif
+  
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
                             nEntities, steps, nSteps, pos, dir,
-                            iters, tolerance);
+                            iters, tolerance
+#ifdef CLDEBUG
+                            , debugFlag
+#endif
+                            );
+#ifdef CLDEBUG
+  if (debugFlag){
+    printf("Screen coords: (%02d, %02d)\n", mousePos.x, mousePos.y);
+    printf("Color: %08x", pBuffer[i]);
+  }
+#endif
 }

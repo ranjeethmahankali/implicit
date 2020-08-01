@@ -2,7 +2,7 @@
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
-#define STEP_FOS 0.75f
+#define STEP_FOS 0.5f
 
 #include "kernel_primitives.h"
 
@@ -37,7 +37,11 @@ uint sphere_trace(global uchar* packed,
                   float3 pt,
                   float3 dir,
                   int iters,
-                  float tolerance)
+                  float tolerance
+#ifdef CLDEBUG
+                  , uchar debugFlag
+#endif
+                  )
 {
   if (nEntities == 0)
     return BACKGROUND_COLOR;
@@ -57,7 +61,7 @@ uint sphere_trace(global uchar* packed,
       found = true;
       break;
     }
-    pt += dir * d * STEP_FOS;
+    pt += dir * (d * STEP_FOS);
     if (i > 3 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
@@ -73,5 +77,11 @@ uint sphere_trace(global uchar* packed,
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
+#ifdef CLDEBUG
+  if (debugFlag){
+    printf("\nFloating point color: (%.2f, %.2f, %.2f)\n",
+           color1.x, color1.y, color1.z);
+  }
+#endif
   return colorToInt(color1);
 }

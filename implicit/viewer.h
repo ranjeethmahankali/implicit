@@ -37,6 +37,7 @@ namespace camera
     void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
     void on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset);
     static void capture_mouse_pos(double xpos, double ypos);
+    void get_mouse_pos(uint32_t& x, uint32_t& y);
 }
 
 namespace viewer
@@ -65,7 +66,8 @@ namespace viewer
     void render();
 
 #ifdef CLDEBUG
-    void debugmode(bool flag);
+    void setdebugmode(bool flag);
+    bool getdebugmode();
     void debugstep();
 #endif // CLDEBUG
 };

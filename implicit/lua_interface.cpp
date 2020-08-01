@@ -336,7 +336,7 @@ int lua_interface::viewer_debugmode(lua_State* L)
     int arg = read_number<int>(L, 1);
     if (arg != 0 && arg != 1)
         luathrow(L, "Argument must be either 0 or 1.");
-    viewer::debugmode(arg == 1 ? true : false);
+    viewer::setdebugmode(arg == 1 ? true : false);
     return 0;
 }
 

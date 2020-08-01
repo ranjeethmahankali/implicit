@@ -39,6 +39,9 @@ static cl::Program s_program;
 static cl::make_kernel<
     cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
     cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+#ifdef CLDEBUG
+    , cl_uint2
+#endif // CLDEBUG
 >* s_kernel;
 
 static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
@@ -213,6 +216,15 @@ void camera::capture_mouse_pos(double xpos, double ypos)
     s_mousePos.y = ypos;
 }
 
+void camera::get_mouse_pos(uint32_t& x, uint32_t& y)
+{
+    double xpos, ypos;
+    glfwGetCursorPos(s_window, &xpos, &ypos);
+    capture_mouse_pos(xpos, ypos);
+    x = (uint32_t)xpos;
+    y = (uint32_t)ypos;
+}
+
 float camera::distance()
 {
     return s_camDist;
@@ -357,7 +369,7 @@ void viewer::render_loop()
 #ifdef CLDEBUG
         if (s_debugMode)
         {
-            std::cout << "\nViewer paused in debug mode...\n" << ARROWS;
+            std::cout << "\n\nViewer paused in debug mode...\n" << ARROWS;
             pause_render_loop();
         }
 #endif // CLDEBUG
@@ -381,6 +393,15 @@ void viewer::render()
         s_queue.finish();
         if (s_kernel)
         {
+#ifdef CLDEBUG
+            cl_uint2 mousePos = { UINT32_MAX, UINT32_MAX };
+            if (viewer::getdebugmode())
+            {
+                uint32_t x, y;
+                camera::get_mouse_pos(x, y);
+                mousePos = { x, y };
+            }
+#endif // CLDEBUG
             glm::vec3 ctarget = camera::target();
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64)),
                 s_pBuffer,
@@ -393,7 +414,11 @@ void viewer::render()
                 s_opStepBuf,
                 (cl_uint)s_opStepCount,
                 { camera::distance(), camera::theta(), camera::phi() },
-                { ctarget.x, ctarget.y, ctarget.z });
+                { ctarget.x, ctarget.y, ctarget.z }
+#ifdef CLDEBUG
+                , mousePos
+#endif // CLDEBUG
+            );
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
@@ -403,10 +428,15 @@ void viewer::render()
 }
 
 #ifdef CLDEBUG
-void viewer::debugmode(bool flag)
+void viewer::setdebugmode(bool flag)
 {
     s_debugMode = flag;
     if (!s_debugMode) debugstep();
+}
+
+bool viewer::getdebugmode()
+{
+    return s_debugMode;
 }
 
 void viewer::debugstep()
@@ -436,11 +466,19 @@ void viewer::init_ocl()
         }
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
-        s_program = cl::Program(s_context, cl_kernel_sources::render, true);
+        s_program = cl::Program(s_context, cl_kernel_sources::render, false);
+        s_program.build(
+#ifdef CLDEBUG
+            "-D CLDEBUG"
+#endif // CLDEBUG
+        );
 
         s_kernel = new cl::make_kernel<
             cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
             cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+#ifdef CLDEBUG
+            , cl_uint2
+#endif // CLDEBUG
         >(s_program, "k_trace");
 
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();

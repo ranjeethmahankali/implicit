@@ -1,11 +1,12 @@
 namespace cl_kernel_sources
 {
 	constexpr char render[] = R"(
+// #define CLDEBUG
 #define DX 0.0001f
 #define BOUND 20.0f
 #define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
-#define STEP_FOS 0.75f
+#define STEP_FOS 0.5f
 #define UINT32_TYPE uint
 #define UINT8_TYPE uchar
 #define FLT_TYPE float
@@ -298,7 +299,11 @@ uint sphere_trace(global uchar* packed,
                   float3 pt,
                   float3 dir,
                   int iters,
-                  float tolerance)
+                  float tolerance
+#ifdef CLDEBUG
+                  , uchar debugFlag
+#endif
+                  )
 {
   if (nEntities == 0)
     return BACKGROUND_COLOR;
@@ -318,7 +323,7 @@ uint sphere_trace(global uchar* packed,
       found = true;
       break;
     }
-    pt += dir * d * STEP_FOS;
+    pt += dir * (d * STEP_FOS);
     if (i > 3 && (fabs(pt.x) > BOUND ||
                   fabs(pt.y) > BOUND ||
                   fabs(pt.z) > BOUND)) break;
@@ -333,6 +338,12 @@ uint sphere_trace(global uchar* packed,
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
+#ifdef CLDEBUG
+  if (debugFlag){
+    printf("\nFloating point color: (%.2f, %.2f, %.2f)\n",
+           color1.x, color1.y, color1.z);
+  }
+#endif
   return colorToInt(color1);
 }
 void perspective_project(float3 camPos,
@@ -359,16 +370,20 @@ void perspective_project(float3 camPos,
   *dir = normalize((*pos) - center);
 }
 kernel void k_trace(global uint* pBuffer, // The pixel buffer
-                    global uchar* packed,
-                    global uchar* types,
-                    global uchar* offsets,
-                    local float* valBuf,
-                    local float* regBuf,
-                    uint nEntities,
-                    global op_step* steps,
-                    uint nSteps,
-                    float3 camPos, // Camera position in spherical coordinates
-                    float3 camTarget)
+                    global uchar* packed, // Bytes of render data for simple bytes.
+                    global uchar* types, // Types of simple entities in the csg tree.
+                    global uchar* offsets, // The byte offsets of simple entities.
+                    local float* valBuf, // The buffer for local use.
+                    local float* regBuf, // More buffer for local use.
+                    uint nEntities, // The number of simple entities.
+                    global op_step* steps, // CSG steps.
+                    uint nSteps, // Number of csg steps.
+                    float3 camPos, // Camera position in spherical coords from target
+                    float3 camTarget // Camera target as a point in R3 space.
+#ifdef CLDEBUG
+                    , uint2 mousePos // Mouse position in pixels.
+#endif
+                    )
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
@@ -379,9 +394,23 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   int iters = 500;
   float tolerance = 0.00001f;
   float dTotal = 0;
+#ifdef CLDEBUG
+  uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
+#endif
+  
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
                             nEntities, steps, nSteps, pos, dir,
-                            iters, tolerance);
+                            iters, tolerance
+#ifdef CLDEBUG
+                            , debugFlag
+#endif
+                            );
+#ifdef CLDEBUG
+  if (debugFlag){
+    printf("Screen coords: (%02d, %02d)\n", mousePos.x, mousePos.y);
+    printf("Color: %08x", pBuffer[i]);
+  }
+#endif
 }
 	)";
 
