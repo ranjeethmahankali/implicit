@@ -23,6 +23,8 @@ if (viewer::log_gl_errors(#fncall, __FILE__, __LINE__)) __debugbreak();\
 #define GL_CALL(fncall) fncall
 #endif
 
+constexpr char ARROWS[] = ">>> ";
+
 namespace camera
 {
     float distance();
@@ -61,6 +63,11 @@ namespace viewer
     void show_entity(entities::ent_ref entity);
 
     void render();
+
+#ifdef CLDEBUG
+    void debugmode(bool flag);
+    void debugstep();
+#endif // CLDEBUG
 };
 
 namespace util

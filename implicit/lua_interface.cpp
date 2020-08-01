@@ -39,6 +39,11 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, show);
     LUA_REG_FUNC(L, exit);
     LUA_REG_FUNC(L, quit);
+
+#ifdef CLDEBUG
+    LUA_REG_FUNC(L, viewer_debugmode);
+    LUA_REG_FUNC(L, viewer_debugstep);
+#endif // CLDEBUG
 }
 
 int lua_interface::delete_entity(lua_State* L)
@@ -321,6 +326,29 @@ int lua_interface::quit(lua_State* L)
 {
     return lua_interface::exit(L);
 }
+
+#ifdef CLDEBUG
+int lua_interface::viewer_debugmode(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 1)
+        luathrow(L, "debugmode function expects 1 argument.");
+    int arg = read_number<int>(L, 1);
+    if (arg != 0 && arg != 1)
+        luathrow(L, "Argument must be either 0 or 1.");
+    viewer::debugmode(arg == 1 ? true : false);
+    return 0;
+}
+
+int lua_interface::viewer_debugstep(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 0)
+        luathrow(L, "debugmode function expects 0 argument.");
+    viewer::debugstep();
+    return 0;
+}
+#endif // CLDEBUG
 
 lua_State* lua_interface::state()
 {

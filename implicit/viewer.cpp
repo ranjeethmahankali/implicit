@@ -62,6 +62,10 @@ static std::condition_variable s_cv;
 static bool s_pauseRender = false;
 static bool s_shouldExit = false;
 
+#ifdef CLDEBUG
+static bool s_debugMode = false;
+#endif // CLDEBUG
+
 bool viewer::log_gl_errors(const char* function, const char* file, uint32_t line)
 {
     static bool found_error = false;
@@ -306,11 +310,7 @@ static const char* viewer::cl_err_str(cl_int err)
 
 bool viewer::window_should_close()
 {
-    pause_render_loop();
-    bool close;
-    close = glfwWindowShouldClose(s_window);
-    resume_render_loop();
-    return close;
+    return glfwWindowShouldClose(s_window);
 }
 
 void viewer::acquire_lock()
@@ -353,6 +353,14 @@ void viewer::render_loop()
 
         /* Poll for and process events */
         GL_CALL(glfwPollEvents());
+
+#ifdef CLDEBUG
+        if (s_debugMode)
+        {
+            std::cout << "\nViewer paused in debug mode...\n" << ARROWS;
+            pause_render_loop();
+        }
+#endif // CLDEBUG
     }
 }
 
@@ -393,6 +401,19 @@ void viewer::render()
     }
     CATCH_EXIT_CL_ERR;
 }
+
+#ifdef CLDEBUG
+void viewer::debugmode(bool flag)
+{
+    s_debugMode = flag;
+    if (!s_debugMode) debugstep();
+}
+
+void viewer::debugstep()
+{
+    resume_render_loop();
+}
+#endif // CLDEBUG
 
 void viewer::init_ocl()
 {
