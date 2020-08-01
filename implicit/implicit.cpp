@@ -56,13 +56,14 @@ static entities::ent_ref test_cylinder()
 static void cmd_loop()
 {
     std::string input;
-    std::cout << ARROWS;
-    while (!viewer::window_should_close() && !lua_interface::should_exit() && std::getline(std::cin, input))
+    bool running = true;
+    while (running)
     {
+        std::cout << ARROWS;
+        running = !viewer::window_should_close() && !lua_interface::should_exit() && std::getline(std::cin, input);
         if (input.empty())
             continue;
         lua_interface::run_cmd(input);
-        std::cout << ARROWS;
     }
     viewer::close_window();
 };
