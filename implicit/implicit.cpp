@@ -67,13 +67,24 @@ static void cmd_loop()
     viewer::close_window();
 };
 
-int main()
+int main(int argc, char** argv)
 {
+    std::cout << "Initializing OpenGL...\n";
     viewer::init_ogl();
+    std::cout << "Initializing OpenCL...\n";
     viewer::init_ocl();
+    std::cout << "\tAllocating device buffers\n";
     viewer::init_buffers();
+    std::cout << "Initializing Lua bindings...\n";
     lua_interface::init_lua();
+    std::cout << "=====================================\n\n";
 
+    if (argc == 2)
+    {
+        std::string path(argv[1]);
+        std::string command = "load(\"" + path + "\")";
+        lua_interface::run_cmd(command);
+    }
     std::thread cmdThread(cmd_loop);
     viewer::render_loop();
 

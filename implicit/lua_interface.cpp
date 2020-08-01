@@ -242,6 +242,8 @@ int lua_interface::load(lua_State* L)
     }
 
     std::cout << std::endl;
+    std::cout << "Parsing file: " << filepath << std::endl;
+    std::cout << std::endl;
     std::cout << f.rdbuf();
     std::cout << std::endl << std::endl;
     f.close();
