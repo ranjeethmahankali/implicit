@@ -361,6 +361,8 @@ int lua_interface::exportframe(lua_State* L)
     if (!viewer::exportframe(filepath))
         luathrow(L, "Failed to export the frame.");
     luathrow(L, "exportframe is not implemented");
+    // Using opencv makes sense. It can export images and can also be used later for videos.
+    // https://docs.opencv.org/2.4/doc/tutorials/introduction/load_save_image/load_save_image.html
     return 0;
 }
 
