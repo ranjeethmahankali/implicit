@@ -6,6 +6,15 @@
 #include "kernel_sources.h"
 #include "viewer.h"
 
+#pragma warning(push)
+#pragma warning(disable: 4244)
+#include <boost/gil/image.hpp>
+#include <boost/gil/typedefs.hpp>
+#include <boost/gil/extension/io/bmp.hpp>
+namespace bgil = boost::gil;
+#include <boost/algorithm/string/case_conv.hpp>
+#pragma warning(pop)
+
 #define CATCH_EXIT_CL_ERR catch (cl::Error err)\
 {\
 std::cerr << "OpenCL Error: " << viewer::cl_err_str(err.err()) << std::endl;\
@@ -430,12 +439,40 @@ bool viewer::exportframe(const std::string& path)
 {
     try
     {
-        cl_mem mem = s_pBuffer();
-        clEnqueueAcquireGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         size_t nPixels = WIN_W * WIN_H;
-        std::vector<uint32_t> pdata(nPixels);
-        s_queue.enqueueReadBuffer(s_pBuffer, true, 0, nPixels * sizeof(uint32_t), pdata.data());
-        clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+        std::vector<uint8_t> pdata(nPixels * 4); // 4 channels per pixel.
+        {
+            cl_mem mem = s_pBuffer();
+            pause_render_loop();
+            clEnqueueAcquireGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+            s_queue.enqueueReadBuffer(s_pBuffer, true, 0, nPixels * sizeof(uint32_t), pdata.data());
+            clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+            resume_render_loop();
+        }
+        bgil::rgba8_image_t img(WIN_W, WIN_H);
+        auto dataIt = pdata.cbegin();
+        // We need the flipped view because the y-axis in boost goes from bottom to top.
+        auto flippedView = bgil::flipped_up_down_view(bgil::view(img));
+        auto imgIt = flippedView.begin();
+        auto imgEnd = flippedView.end();
+        while (dataIt != pdata.cend() && imgIt != imgEnd)
+        {
+            uint8_t r = *(dataIt++);
+            uint8_t g = *(dataIt++);
+            uint8_t b = *(dataIt++);
+            uint8_t a = *(dataIt++);
+            *(imgIt++) = bgil::rgba8_pixel_t(r, g, b, a);
+        }
+        if (check_format(path, ".bmp"))
+        {
+            bgil::write_view(path, bgil::view(img), bgil::bmp_tag{});
+        }
+        else
+        {
+            std::cerr << "Cannot export this format." << std::endl;
+            return false;
+        }
+
         return true;
     }
     CATCH_EXIT_CL_ERR;
@@ -626,4 +663,11 @@ void viewer::show_entity(entities::ent_ref entity)
     }
 
     viewer::add_render_data(bytes.data(), nBytes, types.data(), offsets.data(), nEntities, steps.data(), nSteps);
+}
+
+bool check_format(const std::string& path, const std::string& ext)
+{
+    std::string pathLower(path);
+    boost::to_lower(pathLower);
+    return pathLower.size() >= ext.size() && pathLower.compare(path.size() - ext.size(), ext.size(), ext) == 0;
 }

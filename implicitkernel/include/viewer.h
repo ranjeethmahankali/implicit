@@ -41,6 +41,8 @@ namespace camera
     void get_mouse_pos(uint32_t& x, uint32_t& y);
 }
 
+static bool check_format(const std::string& str, const std::string& suffix);
+
 namespace viewer
 {
     bool log_gl_errors(const char* function, const char* file, uint32_t line);
