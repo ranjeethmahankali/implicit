@@ -44,6 +44,8 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, viewer_debugmode);
     LUA_REG_FUNC(L, viewer_debugstep);
 #endif // CLDEBUG
+
+    LUA_REG_FUNC(L, exportframe);
 }
 
 int lua_interface::delete_entity(lua_State* L)
@@ -349,6 +351,18 @@ int lua_interface::viewer_debugstep(lua_State* L)
     return 0;
 }
 #endif // CLDEBUG
+
+int lua_interface::exportframe(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs != 1)
+        luathrow(L, "exportframe function expects 1 argument.");
+    std::string filepath = read_string(L, 1);
+    if (!viewer::exportframe(filepath))
+        luathrow(L, "Failed to export the frame.");
+    luathrow(L, "exportframe is not implemented");
+    return 0;
+}
 
 lua_State* lua_interface::state()
 {

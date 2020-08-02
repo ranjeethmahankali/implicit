@@ -33,7 +33,7 @@ static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
 static cl::Context s_context;
 static cl::CommandQueue s_queue;
-static uint32_t s_pboId = 0;
+static uint32_t s_pboId = 0; // Pixel buffer to be rendered to screen, controlled by OpenGL.
 static cl::Program s_program;
 static cl::make_kernel<
     cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
@@ -43,7 +43,7 @@ static cl::make_kernel<
 #endif // CLDEBUG
 >* s_kernel;
 
-static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen.
+static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen. Controlled by OpenCL.
 static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
 static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
@@ -422,6 +422,21 @@ void viewer::render()
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
         s_queue.finish();
+    }
+    CATCH_EXIT_CL_ERR;
+}
+
+bool viewer::exportframe(const std::string& path)
+{
+    try
+    {
+        cl_mem mem = s_pBuffer();
+        clEnqueueAcquireGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+        size_t nPixels = WIN_W * WIN_H;
+        std::vector<uint32_t> pdata(nPixels);
+        s_queue.enqueueReadBuffer(s_pBuffer, true, 0, nPixels * sizeof(uint32_t), pdata.data());
+        clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
+        return true;
     }
     CATCH_EXIT_CL_ERR;
 }

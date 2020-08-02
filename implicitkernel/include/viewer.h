@@ -65,6 +65,7 @@ namespace viewer
     void show_entity(entities::ent_ref entity);
 
     void render();
+    bool exportframe(const std::string& path);
 
 #ifdef CLDEBUG
     void setdebugmode(bool flag);

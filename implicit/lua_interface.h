@@ -59,4 +59,5 @@ namespace lua_interface
     int viewer_debugstep(lua_State* L);
 #endif // CLDEBUG
 
+    int exportframe(lua_State* L);
 }
