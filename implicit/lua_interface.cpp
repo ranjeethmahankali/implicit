@@ -1,5 +1,5 @@
-#include "lua_interface.h"
 #include <fstream>
+#include "lua_interface.h"
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
 bool s_shouldExit = false;
 

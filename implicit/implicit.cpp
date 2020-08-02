@@ -4,10 +4,10 @@
 #include <iostream>
 #include <algorithm>
 #include <condition_variable>
-#include "viewer.h"
 
 #include <assert.h>
 #include "lua_interface.h"
+#include "viewer.h"
 
 static entities::ent_ref test_heavy_part()
 {

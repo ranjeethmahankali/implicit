@@ -329,7 +329,13 @@ uint sphere_trace(global uchar* packed,
                   fabs(pt.z) > BOUND)) break;
   }
   
-  if (!found) return BACKGROUND_COLOR;
+  if (!found){
+#ifdef CLDEBUG
+    if (debugFlag)
+      printf("Can't find intersection. Rendering background color\n");
+#endif
+    return BACKGROUND_COLOR;
+  }
   pt -= dir * AMB_STEP;
   float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
                         nEntities, steps, nSteps, &pt) - d) / AMB_STEP;
@@ -340,7 +346,7 @@ uint sphere_trace(global uchar* packed,
   float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
 #ifdef CLDEBUG
   if (debugFlag){
-    printf("\nFloating point color: (%.2f, %.2f, %.2f)\n",
+    printf("Floating point color: (%.2f, %.2f, %.2f)\n",
            color1.x, color1.y, color1.z);
   }
 #endif
@@ -396,6 +402,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   float dTotal = 0;
 #ifdef CLDEBUG
   uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
+  if (debugFlag) printf("\n");
 #endif
   
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,

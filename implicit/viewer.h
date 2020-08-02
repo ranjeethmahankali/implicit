@@ -1,17 +1,18 @@
 #pragma once
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <iostream>
-
 #include "host_primitives.h"
+#define NOMINMAX
 
+/*glew.h, cl.hpp and glfw3.h should be included in this specific order to not get dumb warnings.*/
+#include <GL/glew.h>
 #define __CL_ENABLE_EXCEPTIONS
 //#define __NO_STD_STRING
 #define  _VARIADIC_MAX 16
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.hpp>
+#include <GLFW/glfw3.h>
 
 #ifdef _DEBUG
 #define GL_CALL(fncall) {\

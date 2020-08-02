@@ -1,11 +1,10 @@
-#define NOMINMAX
-#include "viewer.h"
 #include <iostream>
 #include <thread>
 #include <mutex>
 #include <glm.hpp>
 #include <algorithm>
 #include "kernel_sources.h"
+#include "viewer.h"
 
 #define CATCH_EXIT_CL_ERR catch (cl::Error err)\
 {\

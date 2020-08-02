@@ -58,6 +58,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
 
 #ifdef CLDEBUG
   uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
+  if (debugFlag) printf("\n");
 #endif
   
   pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,

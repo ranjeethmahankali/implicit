@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <iostream>
 extern "C"
@@ -8,7 +7,6 @@ extern "C"
 #include "lauxlib.h"
 #include "lualib.h"
 };
-
 #include "viewer.h"
 
 static lua_State* s_luaState = nullptr;
