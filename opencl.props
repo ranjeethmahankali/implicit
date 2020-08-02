@@ -12,8 +12,7 @@
       <AdditionalDependencies>OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>if exist $(SolutionDir)dependencies\clkernelsrc.exe $(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(ProjectDir)kernel_sources.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />
