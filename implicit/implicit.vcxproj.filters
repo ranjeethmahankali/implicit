@@ -18,27 +18,12 @@
     <ClCompile Include="implicit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="host_primitives.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="lua_interface.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="viewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="kernel_sources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="host_primitives.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lua_interface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="viewer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
