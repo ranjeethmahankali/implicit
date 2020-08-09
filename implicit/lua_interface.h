@@ -60,4 +60,5 @@ namespace lua_interface
 #endif // CLDEBUG
 
     int exportframe(lua_State* L);
+    int setbounds(lua_State* L);
 }

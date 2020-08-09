@@ -489,6 +489,16 @@ bool viewer::exportframe(const std::string& path)
     CATCH_EXIT_CL_ERR;
 }
 
+void viewer::setbounds(float(&bounds)[6])
+{
+    s_minBounds.x = bounds[0];
+    s_minBounds.y = bounds[1];
+    s_minBounds.z = bounds[2];
+    s_maxBounds.x = bounds[3];
+    s_maxBounds.y = bounds[4];
+    s_maxBounds.z = bounds[5];
+}
+
 #ifdef CLDEBUG
 void viewer::setdebugmode(bool flag)
 {

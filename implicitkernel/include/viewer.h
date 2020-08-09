@@ -78,6 +78,7 @@ namespace viewer
 
     void render();
     bool exportframe(const std::string& path);
+    void setbounds(float(&bounds)[6]);
 
 #ifdef CLDEBUG
     void setdebugmode(bool flag);

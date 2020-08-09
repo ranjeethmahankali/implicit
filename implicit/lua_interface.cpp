@@ -1,6 +1,20 @@
 #include <fstream>
 #include "lua_interface.h"
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
+
+// Function name macro for logging purposes.
+#ifndef __FUNCTION_NAME__
+#ifdef _MSC_VER //WINDOWS
+#define __FUNCTION_NAME__   __FUNCTION__
+#else
+#error Define the function name macro for non windows platform.
+#endif
+#endif
+
+#define CHECK_NUM_ARGS(argcount, expected, lstate) if (argcount != expected){\
+std::cerr << "The function '" << __FUNCTION_NAME__ << "' expects " << expected << " arguments.\n";\
+luathrow(lstate, "Wrong number of arguments for the function.");}
+
 bool s_shouldExit = false;
 
 void lua_interface::init_lua()
@@ -46,6 +60,7 @@ void lua_interface::init_functions()
 #endif // CLDEBUG
 
     LUA_REG_FUNC(L, exportframe);
+    LUA_REG_FUNC(L, setbounds);
 }
 
 int lua_interface::delete_entity(lua_State* L)
@@ -74,8 +89,7 @@ int lua_interface::box(lua_State* L)
 {
     // Get num args.
     int nargs = lua_gettop(L);
-    if (nargs != 6)
-        luathrow(L, "Box creation requires exactly 6 arguments.");
+    CHECK_NUM_ARGS(nargs, 6, L);
 
     float bounds[6];
     for (int i = 1; i <= 6; i++)
@@ -91,8 +105,8 @@ int lua_interface::sphere(lua_State* L)
 {
     // Get num args.
     int nargs = lua_gettop(L);
-    if (nargs != 4)
-        luathrow(L, "Sphere creation requires exactly 4 arguments.");
+    CHECK_NUM_ARGS(nargs, 4, L);
+    
     float center[3];
     for (int i = 0; i < 3; i++)
     {
@@ -108,8 +122,8 @@ int lua_interface::sphere(lua_State* L)
 int lua_interface::cylinder(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 7)
-        luathrow(L, "Cylinder creation requires exactly 7 arguments.");
+    CHECK_NUM_ARGS(nargs, 7, L);
+
     float p1[3], p2[3], radius;
     for (int i = 0; i < 3; i++)
         p1[i] = read_number<float>(L, i + 1);
@@ -123,8 +137,7 @@ int lua_interface::cylinder(lua_State* L)
 int lua_interface::halfspace(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 6)
-        luathrow(L, "Halfspace creation requires exactly 6 arguments.");
+    CHECK_NUM_ARGS(nargs, 6, L);
 
     float coords[6];
     for (int i = 0; i < 6; i++)
@@ -139,8 +152,7 @@ int lua_interface::halfspace(lua_State* L)
 int lua_interface::gyroid(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 2)
-        luathrow(L, "Gyroid creation requires exactly 2 arguments.");
+    CHECK_NUM_ARGS(nargs, 2, L);
 
     float scale = read_number<float>(L, 1);
     float thickness = read_number<float>(L, 2);
@@ -151,8 +163,7 @@ int lua_interface::gyroid(lua_State* L)
 int lua_interface::schwarz(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 2)
-        luathrow(L, "Schwarz lattice creation requires exactly 2 arguments.");
+    CHECK_NUM_ARGS(nargs, 2, L);
 
     float scale = read_number<float>(L, 1);
     float thickness = read_number<float>(L, 2);
@@ -185,8 +196,7 @@ int lua_interface::offset(lua_State* L)
 {
     using namespace entities;
     int nargs = lua_gettop(L);
-    if (nargs != 2)
-        luathrow(L, "Offset operation takes exactly 2 arguments.");
+    CHECK_NUM_ARGS(nargs, 2, L);
 
     ent_ref ref = read_entity(L, 1);
     float dist = read_number<float>(L, 2);
@@ -198,8 +208,7 @@ int lua_interface::linblend(lua_State* L)
 {
     using namespace entities;
     int nargs = lua_gettop(L);
-    if (nargs != 8)
-        luathrow(L, "Linear blend requires exactly 1 filepath argument.");
+    CHECK_NUM_ARGS(nargs, 8, L);
 
     ent_ref e1 = read_entity(L, 1);
     ent_ref e2 = read_entity(L, 2);
@@ -217,8 +226,7 @@ int lua_interface::smoothblend(lua_State* L)
 {
     using namespace entities;
     int nargs = lua_gettop(L);
-    if (nargs != 8)
-        luathrow(L, "Linear blend requires exactly 1 filepath argument.");
+    CHECK_NUM_ARGS(nargs, 8, L);
 
     ent_ref e1 = read_entity(L, 1);
     ent_ref e2 = read_entity(L, 2);
@@ -236,8 +244,7 @@ int lua_interface::load(lua_State* L)
 {
     using namespace entities;
     int nargs = lua_gettop(L);
-    if (nargs != 1)
-        luathrow(L, "Loading operation requires exactly 1 filepath argument.");
+    CHECK_NUM_ARGS(nargs, 1, L);
 
     std::string filepath = read_string(L, 1);
     std::ifstream f;
@@ -308,8 +315,7 @@ void lua_interface::push_entity(lua_State* L, const entities::ent_ref& ref)
 int lua_interface::show(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 1)
-        luathrow(L, "Show function expects 1 argument.");
+    CHECK_NUM_ARGS(nargs, 1, L);
 
     using namespace entities;
     ent_ref ref = read_entity(L, 1);
@@ -333,8 +339,7 @@ int lua_interface::quit(lua_State* L)
 int lua_interface::viewer_debugmode(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 1)
-        luathrow(L, "debugmode function expects 1 argument.");
+    CHECK_NUM_ARGS(nargs, 1, L);
     int arg = read_number<int>(L, 1);
     if (arg != 0 && arg != 1)
         luathrow(L, "Argument must be either 0 or 1.");
@@ -345,8 +350,7 @@ int lua_interface::viewer_debugmode(lua_State* L)
 int lua_interface::viewer_debugstep(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 0)
-        luathrow(L, "debugmode function expects 0 argument.");
+    CHECK_NUM_ARGS(nargs, 0, L);
     viewer::debugstep();
     return 0;
 }
@@ -355,12 +359,24 @@ int lua_interface::viewer_debugstep(lua_State* L)
 int lua_interface::exportframe(lua_State* L)
 {
     int nargs = lua_gettop(L);
-    if (nargs != 1)
-        luathrow(L, "exportframe function expects 1 argument.");
+    CHECK_NUM_ARGS(nargs, 1, L);
     std::string filepath = read_string(L, 1);
     if (!viewer::exportframe(filepath))
         luathrow(L, "Failed to export the frame.");
     std::cout << "Frame was exported.\n";
+    return 0;
+}
+
+int lua_interface::setbounds(lua_State* L)
+{
+    int nargs = lua_gettop(L);
+    CHECK_NUM_ARGS(nargs, 6, L);
+    float bounds[6];
+    for (int i = 0; i < 6; i++)
+    {
+        bounds[i] = read_number<float>(L, i + 1);
+    }
+    viewer::setbounds(bounds);
     return 0;
 }
 
