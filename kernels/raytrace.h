@@ -1,6 +1,4 @@
 #define DX 0.0001f
-#define BOUND 20.0f
-#define BACKGROUND_COLOR 0xff101010
 #define AMB_STEP 0.05f
 #define STEP_FOS 0.5f
 
@@ -37,7 +35,8 @@ uint sphere_trace(global uchar* packed,
                   float3 pt,
                   float3 dir,
                   int iters,
-                  float tolerance
+                  float tolerance,
+                  float boundDist
 #ifdef CLDEBUG
                   , uchar debugFlag
 #endif
@@ -49,6 +48,7 @@ uint sphere_trace(global uchar* packed,
   dir = normalize(dir);
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
+  float dTotal = 0.0f;
   float d;
   for (int i = 0; i < iters; i++){
     d = f_entity(packed, offsets, types, valBuf, regBuf,
@@ -62,9 +62,8 @@ uint sphere_trace(global uchar* packed,
       break;
     }
     pt += dir * (d * STEP_FOS);
-    if (i > 3 && (fabs(pt.x) > BOUND ||
-                  fabs(pt.y) > BOUND ||
-                  fabs(pt.z) > BOUND)) break;
+    dTotal += d * STEP_FOS;
+    if (i > 3 && dTotal > boundDist) break;
   }
   
   if (!found){

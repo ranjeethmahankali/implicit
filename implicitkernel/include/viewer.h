@@ -45,6 +45,16 @@ static bool check_format(const std::string& str, const std::string& suffix);
 
 namespace viewer
 {
+    struct viewer_data
+    {
+        float camDistance;
+        float camTheta;
+        float camPhi;
+        glm::vec3 camTarget;
+        glm::vec3 minBounds;
+        glm::vec3 maxBounds;
+    };
+
     bool log_gl_errors(const char* function, const char* file, uint32_t line);
     void clear_gl_errors();
     void init_ogl();

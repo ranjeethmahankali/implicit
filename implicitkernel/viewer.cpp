@@ -46,7 +46,7 @@ static uint32_t s_pboId = 0; // Pixel buffer to be rendered to screen, controlle
 static cl::Program s_program;
 static cl::make_kernel<
     cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-    cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+    cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
 #ifdef CLDEBUG
     , cl_uint2
 #endif // CLDEBUG
@@ -57,6 +57,7 @@ static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
 static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
+static cl::Buffer s_viewerDataBuf; // Buffer contains viewer data, camera position, direction and build volume bounds.
 static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
 static cl::LocalSpaceArg s_regBuf; // Register to store intermediate csg values.
 static size_t s_numCurrentEntities = 0;
@@ -64,6 +65,7 @@ static size_t s_opStepCount = 0;
 
 static size_t s_globalMemSize = 0;
 static size_t s_localMemSize = 0;
+static size_t s_constMemSize = 0;
 static size_t s_maxBufSize = 0;
 static size_t s_maxLocalBufSize = 0;
 static size_t s_workGroupSize = 0;
@@ -72,6 +74,9 @@ static std::mutex s_mutex;
 static std::condition_variable s_cv;
 static bool s_pauseRender = false;
 static bool s_shouldExit = false;
+
+static glm::vec3 s_minBounds = { -20.0f, -20.0f, -20.0f };
+static glm::vec3 s_maxBounds = {  20.0f,  20.0f,  20.0f };
 
 #ifdef CLDEBUG
 static bool s_debugMode = false;
@@ -407,10 +412,17 @@ void viewer::render()
             {
                 uint32_t x, y;
                 camera::get_mouse_pos(x, y);
-                mousePos = { x, y };
+                mousePos = { x, WIN_H - y };
             }
 #endif // CLDEBUG
-            glm::vec3 ctarget = camera::target();
+            viewer_data vdata
+            {
+                camera::distance(), camera::theta(), camera::phi(),
+                camera::target(),
+                s_minBounds,
+                s_maxBounds
+            };
+            s_queue.enqueueWriteBuffer(s_viewerDataBuf, CL_TRUE, 0, sizeof(vdata), &vdata);
             (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64)),
                 s_pBuffer,
                 s_packedBuf,
@@ -421,8 +433,7 @@ void viewer::render()
                 (cl_uint)s_numCurrentEntities,
                 s_opStepBuf,
                 (cl_uint)s_opStepCount,
-                { camera::distance(), camera::theta(), camera::phi() },
-                { ctarget.x, ctarget.y, ctarget.z }
+                s_viewerDataBuf
 #ifdef CLDEBUG
                 , mousePos
 #endif // CLDEBUG
@@ -526,7 +537,7 @@ void viewer::init_ocl()
 
         s_kernel = new cl::make_kernel<
             cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-            cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl_float3, cl_float3
+            cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
 #ifdef CLDEBUG
             , cl_uint2
 #endif // CLDEBUG
@@ -535,6 +546,7 @@ void viewer::init_ocl()
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
         s_maxBufSize = s_globalMemSize / 32;
         s_localMemSize = devices[0].getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
+        s_constMemSize = devices[0].getInfo< CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE>();
         s_maxLocalBufSize = s_localMemSize / 4;
         s_valueBuf = cl::Local(s_maxLocalBufSize);
         s_regBuf = cl::Local(s_maxLocalBufSize);
@@ -594,6 +606,7 @@ void viewer::init_buffers()
         s_typeBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
         s_offsetBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
         s_opStepBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, s_maxBufSize);
+        s_viewerDataBuf = cl::Buffer(s_context, CL_MEM_HOST_WRITE_ONLY | CL_MEM_READ_ONLY, 12 * sizeof(float));
     }
     CATCH_EXIT_CL_ERR;
 }
