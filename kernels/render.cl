@@ -1,8 +1,12 @@
 /* #define CLDEBUG */
 #define BACKGROUND_COLOR 0xff101010
+#define BOUND_R_COLOR 0xff000020
+#define BOUND_G_COLOR 0xff002000
+#define BOUND_B_COLOR 0xff200000
 #include "raytrace.h"
 
-float bound_distance(__constant float* viewerData, float3* pos, float3* dir
+float bound_distance(__constant float* viewerData, float3* pos, float3* dir,
+                     uint* color
 #ifdef CLDEBUG
                      , uchar debugFlag
 #endif
@@ -10,39 +14,46 @@ float bound_distance(__constant float* viewerData, float3* pos, float3* dir
 {
   float3 bmin = vload3(2, viewerData);
   float3 bmax = vload3(3, viewerData);
+  *color = BACKGROUND_COLOR;
   if ((*dir).x < 0.0f){
     float3 t = *pos + (*dir) * ((bmin.x - (*pos).x)/((*dir).x));
     if (t.y > bmin.y && t.y < bmax.y && t.z > bmin.z && t.z < bmax.z){
+      *color = BOUND_R_COLOR;
       return length(t - *pos);
     }
   }
   else if ((*dir).x > 0.0f){
     float3 t = *pos + (*dir) * ((bmax.x - (*pos).x)/((*dir).x));
     if (t.y > bmin.y && t.y < bmax.y && t.z > bmin.z && t.z < bmax.z){
+      *color = BOUND_R_COLOR;
       return length(t - *pos);
     }
   }
   if ((*dir).y < 0.0f){
     float3 t = *pos + (*dir) * ((bmin.y - (*pos).y)/((*dir).y));
     if (t.x > bmin.x && t.x < bmax.x && t.z > bmin.z && t.z < bmax.z){
+      *color = BOUND_G_COLOR;
       return length(t - *pos);
     }
   }
   else if ((*dir).y > 0.0f){
     float3 t = *pos + (*dir) * ((bmax.y - (*pos).y)/((*dir).y));
     if (t.x > bmin.x && t.x < bmax.x && t.z > bmin.z && t.z < bmax.z){
+      *color = BOUND_G_COLOR;
       return length(t - *pos);
     }
   }
   if ((*dir).z < 0.0f){
     float3 t = *pos + (*dir) * ((bmin.z - (*pos).z)/((*dir).z));
     if (t.x > bmin.x && t.x < bmax.x && t.y > bmin.y && t.y < bmax.y){
+      *color = BOUND_B_COLOR;
       return length(t - *pos);
     }
   }
   else if ((*dir).z > 0.0f){
     float3 t = *pos + (*dir) * ((bmax.z - (*pos).z)/((*dir).z));
     if (t.x > bmin.x && t.x < bmax.x && t.y > bmin.y && t.y < bmax.y){
+      *color = BOUND_B_COLOR;
       return length(t - *pos);
     }
   }
@@ -55,7 +66,8 @@ void perspective_project(__constant float* viewerData,
                          uint2 dims,
                          float3* pos,
                          float3* dir,
-                         float* boundDist
+                         float* boundDist,
+                         uint* color
 #ifdef CLDEBUG
                          , uchar debugFlag
 #endif
@@ -81,7 +93,7 @@ void perspective_project(__constant float* viewerData,
 
   *dir = normalize((*pos) - center);
   
-  *boundDist = bound_distance(viewerData, pos, dir
+  *boundDist = bound_distance(viewerData, pos, dir, color
 #ifdef CLDEBUG
                               , debugFlag
 #endif
@@ -111,7 +123,8 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
 #endif
   float3 pos, dir;
   float boundDist;
-  perspective_project(viewerData, coord, dims, &pos, &dir, &boundDist
+  uint color;
+  perspective_project(viewerData, coord, dims, &pos, &dir, &boundDist, &color
 #ifdef CLDEBUG
                       , debugFlag
 #endif
@@ -129,6 +142,9 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                               , debugFlag
 #endif
                               );
+    if (pBuffer[i] == BACKGROUND_COLOR){
+      pBuffer[i] = color;
+    }
   }
   else{
     pBuffer[i] = BACKGROUND_COLOR;
