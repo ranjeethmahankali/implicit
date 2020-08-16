@@ -4,17 +4,6 @@
 
 #include "kernel_primitives.h"
 
-/*Macro to numerically compute the gradient vector of a given
-implicit function.*/
-#define GRADIENT(func, pt, norm, v0){                \
-    pt.x += DX; float vx = func; pt.x -= DX;         \
-    pt.y += DX; float vy = func; pt.y -= DX;         \
-    pt.z += DX; float vz = func; pt.z -= DX;         \
-    norm = (float3)((vx - v0) / DX,                  \
-                    (vy - v0) / DX,                  \
-                    (vz - v0) / DX);                 \
-}
-
 uint colorToInt(float3 rgb)
 {
   uint color = 0xff000000;
@@ -27,8 +16,8 @@ uint colorToInt(float3 rgb)
 uint sphere_trace(global uchar* packed,
                   global uint* offsets,
                   global uchar* types,
-                  local float* valBuf,
-                  local float* regBuf,
+                  local float4* valBuf,
+                  local float4* regBuf,
                   uint nEntities,
                   global op_step* steps,
                   uint nSteps,
@@ -49,20 +38,18 @@ uint sphere_trace(global uchar* packed,
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   float dTotal = 0.0f;
-  float d;
+  float4 d;
   for (int i = 0; i < iters; i++){
     d = f_entity(packed, offsets, types, valBuf, regBuf,
                        nEntities, steps, nSteps, &pt);
-    if (d < 0.0f) break;
-    if (d < tolerance){
-      GRADIENT(f_entity(packed, offsets, types, valBuf, regBuf,
-                        nEntities, steps, nSteps, &pt),
-               pt, norm, d);
+    if (d.w < 0.0f) break;
+    if (d.w < tolerance){
+      norm = (float3)(d.x, d.y, d.z);
       found = true;
       break;
     }
-    pt += dir * (d * STEP_FOS);
-    dTotal += d * STEP_FOS;
+    pt += dir * (d.w * STEP_FOS);
+    dTotal += d.w * STEP_FOS;
     if (i > 3 && dTotal > boundDist) break;
   }
   
@@ -76,12 +63,12 @@ uint sphere_trace(global uchar* packed,
 
   pt -= dir * AMB_STEP;
   float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
-                        nEntities, steps, nSteps, &pt) - d) / AMB_STEP;
+                        nEntities, steps, nSteps, &pt).w - d.w) / AMB_STEP;
   norm = normalize(norm);
-  d = dot(norm, -dir);
+  d.w = dot(norm, -dir);
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;
-  float3 color1 = (float3)(cd, cd, cd)*(1.0f-d) + (float3)(cl, cl, cl)*d;
+  float3 color1 = (float3)(cd, cd, cd)*(1.0f - d.w) + (float3)(cl, cl, cl) * d.w;
 #ifdef CLDEBUG
   if (debugFlag){
     printf("Floating point color: (%.2f, %.2f, %.2f)\n",

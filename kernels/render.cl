@@ -104,8 +104,8 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     global uchar* packed, // Bytes of render data for simple bytes.
                     global uchar* types, // Types of simple entities in the csg tree.
                     global uchar* offsets, // The byte offsets of simple entities.
-                    local float* valBuf, // The buffer for local use.
-                    local float* regBuf, // More buffer for local use.
+                    local float4* valBuf, // The buffer for local use.
+                    local float4* regBuf, // More buffer for local use.
                     uint nEntities, // The number of simple entities.
                     global op_step* steps, // CSG steps.
                     uint nSteps, // Number of csg steps.
