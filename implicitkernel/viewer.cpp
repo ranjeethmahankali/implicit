@@ -580,7 +580,7 @@ void viewer::init_ocl()
         s_workGroupSize =
             std::min(width, std::min(
                 devices[0].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(),
-                (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * MAX_ENTITY_COUNT))));
+                (size_t)std::ceil(s_maxLocalBufSize / (sizeof(cl_float4) * MAX_ENTITY_COUNT))));
         if (width % s_workGroupSize)
         {
             size_t newSize = width;
