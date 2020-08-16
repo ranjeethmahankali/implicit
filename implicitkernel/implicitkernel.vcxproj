@@ -130,9 +130,11 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="include\host_primitives.h" />
     <ClInclude Include="include\viewer.h" />
+    <ClInclude Include="kernel_sources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="host_primitives.cpp" />
+    <ClCompile Include="kernel_sources.cpp" />
     <ClCompile Include="viewer.cpp" />
   </ItemGroup>
   <ItemGroup>

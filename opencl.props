@@ -9,11 +9,16 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)dependencies\lightOCLSDK\lib\x86_64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>if exist $(SolutionDir)dependencies\clkernelsrc.exe $(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(ProjectDir)kernel_sources.h"</Command>
+      <Command>if exist $(SolutionDir)dependencies\clkernelsrc.exe $(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(ProjectDir)temp.cl"
+if exist "$(ProjectDir)temp.cl" del "$(ProjectDir)temp.cl"</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>xcopy /s /y "$(SolutionDir)kernels\*h" "$(TargetDir)"
+xcopy /s /y "$(SolutionDir)kernels\*cl" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

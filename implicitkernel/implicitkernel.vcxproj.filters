@@ -24,12 +24,18 @@
     <ClInclude Include="include\viewer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kernel_sources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="viewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="host_primitives.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel_sources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

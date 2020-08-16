@@ -5,7 +5,6 @@
 #include <algorithm>
 #include "kernel_sources.h"
 #include "viewer.h"
-
 #pragma warning(push)
 #pragma warning(disable: 4244)
 #include <boost/gil/image.hpp>
@@ -549,12 +548,12 @@ void viewer::init_ocl()
         }
         s_context = cl::Context(devices[0], props);
         s_queue = cl::CommandQueue(s_context, devices[0]);
-        s_program = cl::Program(s_context, cl_kernel_sources::render, false);
-        s_program.build(
+        s_program = cl::Program(s_context, cl_kernel_sources::render_kernel(), false);
+        std::string optionStr = "-I \"" + cl_kernel_sources::abs_path() + "\"";
 #ifdef CLDEBUG
-            "-D CLDEBUG"
+        optionStr += " -D CLDEBUG";
 #endif // CLDEBUG
-        );
+        s_program.build(optionStr.c_str());
 
         s_kernel = new cl::make_kernel<
             cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
