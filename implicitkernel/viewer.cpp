@@ -15,6 +15,8 @@ namespace bgil = boost::gil;
 #include <boost/algorithm/string/case_conv.hpp>
 #pragma warning(pop)
 
+#include <chrono>
+
 #define CATCH_EXIT_CL_ERR catch (cl::Error err)\
 {\
 std::cerr << "OpenCL Error: " << viewer::cl_err_str(err.err()) << std::endl;\
@@ -80,6 +82,8 @@ static glm::vec3 s_maxBounds = {  20.0f,  20.0f,  20.0f };
 
 #ifdef CLDEBUG
 static bool s_debugMode = false;
+static std::chrono::high_resolution_clock::time_point s_framestart;
+static std::chrono::high_resolution_clock::time_point s_frameend;
 #endif // CLDEBUG
 
 bool viewer::log_gl_errors(const char* function, const char* file, uint32_t line)
@@ -364,6 +368,9 @@ void viewer::render_loop()
     while (!viewer::window_should_close() && !s_shouldExit)
     {
         viewer::acquire_lock();
+#ifdef CLDEBUG
+        if (s_debugMode) s_framestart = std::chrono::high_resolution_clock::now();
+#endif
         viewer::render();
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         GL_CALL(glDisable(GL_DEPTH_TEST));
@@ -382,7 +389,11 @@ void viewer::render_loop()
 #ifdef CLDEBUG
         if (s_debugMode)
         {
-            std::cout << "\n\nViewer paused in debug mode...\n" << ARROWS;
+            s_frameend = std::chrono::high_resolution_clock::now();
+            std::cout << "\n\n";
+            std::cout << "Frame time: "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(s_frameend - s_framestart).count() << "ms\n";
+            std::cout << "Viewer paused in debug mode...\n" << ARROWS;
             pause_render_loop();
         }
 #endif // CLDEBUG
