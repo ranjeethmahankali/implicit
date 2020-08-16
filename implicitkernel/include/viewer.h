@@ -70,6 +70,7 @@ namespace viewer
 
     void init_ocl();
     void init_buffers();
+    void set_work_group_size();
     static void pause_render_loop();
     static void resume_render_loop();
     static void add_render_data(uint8_t* bytes, size_t nBytes, uint8_t* types, uint32_t* offsets, size_t nEntities, op_step* steps, size_t nSteps);
