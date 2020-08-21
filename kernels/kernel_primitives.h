@@ -89,9 +89,9 @@ float4 f_cylinder(global uchar* ptr,
   float3 ln = normalize(p2 - p1);
   float3 r = p1 - (*pt);
   float3 perp = r - ln * dot(ln, r);
-  float4 result = (float4)(perp.x,
-                           perp.y,
-                           perp.z,
+  float4 result = (float4)(-perp.x,
+                           -perp.y,
+                           -perp.z,
                            length(perp) - fabs(cyl->radius));
   float val = dot(ln, r);
   if (val > result.w){
