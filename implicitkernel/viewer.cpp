@@ -628,7 +628,7 @@ void viewer::set_work_group_size()
     s_workGroupSize =
         std::min(width, std::min(
             s_maxWorkGroupSize,
-            (size_t)std::ceil(s_maxLocalBufSize / (sizeof(cl_float4) * nEntities))));
+            (size_t)std::ceil(s_maxLocalBufSize / (sizeof(float) * nEntities))));
     if (width % s_workGroupSize)
     {
         size_t newSize = width;

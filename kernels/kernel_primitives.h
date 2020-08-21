@@ -11,72 +11,33 @@
 
 #define CAST_TYPE(type, name, ptr) global type* name = (global type*)ptr
 
-float4 f_box(global uchar* packed,
+float f_box(global uchar* packed,
             float3* pt)
 {
   CAST_TYPE(i_box, box, packed);
   global float* bounds = box->bounds;
-  float4 result = (float4)(-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX);
-  float val = (*pt).x - bounds[3];
-  if (val > result.w){
-    result.x = 1.0f;
-    result.y = 0.0f;
-    result.z = 0.0f;
-    result.w = val;
-  }
-  val = bounds[0] - (*pt).x;
-  if (val > result.w){
-    result.x = -1.0f;
-    result.y = 0.0f;
-    result.z = 0.0f;
-    result.w = val;
-  }
-  val = (*pt).y - bounds[4];
-  if (val > result.w){
-    result.x = 0.0f;
-    result.y = 1.0f;
-    result.z = 0.0f;
-    result.w = val;
-  }
-  val = bounds[1] - (*pt).y;
-  if (val > result.w){
-    result.x = 0.0f;
-    result.y = -1.0f;
-    result.z = 0.0f;
-    result.w = val;
-  }
-  val = (*pt).z - bounds[5];
-  if (val > result.w){
-    result.x = 0.0f;
-    result.y = 0.0f;
-    result.z = 1.0f;
-    result.w = val;
-  }
-  val = bounds[2] - (*pt).z;
-  if (val > result.w){
-    result.x = 0.0f;
-    result.y = 0.0f;
-    result.z = -1.0f;
-    result.w = val;
-  }
-  return result;
+  float val = -FLT_MAX;
+  val = max(val, (*pt).x - bounds[3]);
+  val = max(val, bounds[0] - (*pt).x);
+  val = max(val, (*pt).y - bounds[4]);
+  val = max(val, bounds[1] - (*pt).y);
+  val = max(val, (*pt).z - bounds[5]);
+  val = max(val, bounds[2] - (*pt).z);
+  return val;
 }
 
-float4 f_sphere(global uchar* ptr,
+float f_sphere(global uchar* ptr,
                float3* pt)
 {
   CAST_TYPE(i_sphere, sphere, ptr);
-  // Vector from the center to the point.
-  float3 dVec = *pt - (float3)(sphere->center[0],
-                               sphere->center[1],
-                               sphere->center[2]);
-  return (float4)(dVec.x,
-                  dVec.y,
-                  dVec.z,
-                  length(dVec) - fabs(sphere->radius));
+  global float* center = sphere->center;
+  float radius = sphere->radius;
+  return (length(*pt -
+                 (float3)(center[0], center[1], center[2])) -
+          fabs(radius));
 }
 
-float4 f_cylinder(global uchar* ptr,
+float f_cylinder(global uchar* ptr,
                  float3* pt)
 {
   CAST_TYPE(i_cylinder, cyl, ptr);
@@ -88,30 +49,14 @@ float4 f_cylinder(global uchar* ptr,
                        cyl->point2[2]);
   float3 ln = normalize(p2 - p1);
   float3 r = p1 - (*pt);
-  float3 perp = r - ln * dot(ln, r);
-  float4 result = (float4)(perp.x,
-                           perp.y,
-                           perp.z,
-                           length(perp) - fabs(cyl->radius));
-  float val = dot(ln, r);
-  if (val > result.w){
-    result.x = -ln.x;
-    result.y = -ln.y;
-    result.z = -ln.z;
-    result.w = val;
-  }
+  float dist = length(r - ln * dot(ln, r)) - fabs(cyl->radius);
+  dist = max(dist, dot(ln, r));
   r = p2 - (*pt);
-  val = dot(-ln, r);
-  if (val > result.w){
-    result.x = ln.x;
-    result.y = ln.y;
-    result.z = ln.z;
-    result.w = val;
-  }
-  return result;
+  dist = max(dist, dot(-ln, r));
+  return dist;
 }
 
-float4 f_gyroid(global uchar* ptr,
+float f_gyroid(global uchar* ptr,
                float3* pt)
 {
   CAST_TYPE(i_gyroid, gyroid, ptr);
@@ -122,42 +67,22 @@ float4 f_gyroid(global uchar* ptr,
   sy = sincos((*pt).y * scale, &cy);
   sz = sincos((*pt).z * scale, &cz);
   float factor = 4.0f / thick;
-  float fval = (sx * cy + sy * cz + sz * cx) / factor;
-  float4 result = (float4)((cx * cy + sy * cz + sz * (-sx)) / factor,
-                           (sx * (-sy) + cy * cz + sz * cx) / factor,
-                           (sx * cy + sy * (-sz) + cz * cx) / factor,
-                           fabs(fval) - (thick / factor));
-  if (fval < 0.0f){
-    result.x *= -1.0f;
-    result.y *= -1.0f;
-    result.z *= -1.0f;
-  }
-  return result;
+  return (fabs(sx * cy + sy * cz + sz * cx) - thick) / factor;
 }
 
-float4 f_schwarz(global uchar* ptr,
+float f_schwarz(global uchar* ptr,
                 float3* pt)
 {
   CAST_TYPE(i_schwarz, lattice, ptr);
-  float factor = 8.0f / lattice->thickness;
-  float sx, sy, sz, cx, cy, cz;
-  sx = sincos((*pt).x * lattice->scale, &cx);
-  sy = sincos((*pt).y * lattice->scale, &cy);
-  sz = sincos((*pt).z * lattice->scale, &cz);
-  float fval = (cx + cy + cz) / factor;
-  float4 result = (float4)((-sx + cy + cz) / factor,
-                           (cx - sy + cz) / factor,
-                           (cx + cy - sz) / factor,
-                           fabs(fval) - (lattice->thickness / factor));
-  if (fval < 0.0f){
-    result.x *= -1.0f;
-    result.y *= -1.0f;
-    result.z *= -1.0f;
-  }
-  return result;
+  float scale = lattice->scale;
+  float thick = lattice->thickness;
+  float factor = 8.0f / thick;
+  return (fabs(cos((*pt).x * scale) +
+               cos((*pt).y * scale) +
+               cos((*pt).z * scale)) - thick) / factor;
 }
 
-float4 f_halfspace(global uchar* ptr,
+float f_halfspace(global uchar* ptr,
                   float3* pt)
 {
   CAST_TYPE(i_halfspace, hspace, ptr);
@@ -167,13 +92,10 @@ float4 f_halfspace(global uchar* ptr,
   float3 normal = normalize((float3)(hspace->normal[0],
                                      hspace->normal[1],
                                      hspace->normal[2]));
-  return (float4)(-normal.x,
-                  -normal.y,
-                  -normal.z,
-                  dot((*pt) - origin, -normal));
+  return dot((*pt) - origin, -normal);
 }
 
-float4 f_simple(global uchar* ptr,
+float f_simple(global uchar* ptr,
                uchar type,
                float3* pt)
 {
@@ -184,11 +106,11 @@ float4 f_simple(global uchar* ptr,
   case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
-  default: return (float4)(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
+  default: return 1.0f;
   }
 }
 
-float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt)
+float apply_linblend(lin_blend_data op, float a, float b, float3* pt)
 {
     float3 p1 = (float3)(op.p1[0],
                          op.p1[1],
@@ -204,7 +126,7 @@ float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt)
     return (1.0f - comp) * a + comp * b;
 }
 
-float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt)
+float apply_smoothblend(smooth_blend_data op, float a, float b, float3* pt)
 {
     float3 p1 = (float3)(op.p1[0],
                          op.p1[1],
@@ -221,16 +143,15 @@ float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt)
     return (1.0f - comp) * a + comp * b;
 }
 
-float4 apply_op(op_defn op, float4 a, float4 b, float3* pt)
+float apply_op(op_defn op, float a, float b, float3* pt)
 {
   switch(op.type){
   case OP_NONE: return a;
-  case OP_UNION: return a.w < b.w ? a : b;// min(a, b);
-  case OP_INTERSECTION: return a.w < b.w ? b : a;//max(a, b);
-  case OP_SUBTRACTION: return a.w < (-b.w) ? (-b) : a; //max(a, -b);
+  case OP_UNION: return min(a, b);
+  case OP_INTERSECTION: return max(a, b);
+  case OP_SUBTRACTION: return max(a, -b);
 
-  case OP_OFFSET: return (float4)(a.x, a.y, a.z,
-                                  a.w - op.data.offset_distance);
+  case OP_OFFSET: return a - op.data.offset_distance;
 
   case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt);
   case OP_SMOOTHBLEND: return apply_smoothblend(op.data.smooth_blend, a, b, pt);
@@ -239,11 +160,11 @@ float4 apply_op(op_defn op, float4 a, float4 b, float3* pt)
   }
 }
 
-float4 f_entity(global uchar* packed,
+float f_entity(global uchar* packed,
                global uint* offsets,
                global uchar* types,
-               local float4* valBuf,
-               local float4* regBuf,
+               local float* valBuf,
+               local float* regBuf,
                uint nEntities,
                global op_step* steps,
                uint nSteps,
@@ -266,12 +187,12 @@ float4 f_entity(global uchar* packed,
   // Perform the csg operations.
   for (uint si = 0; si < nSteps; si++){
     uint i = steps[si].left_index;
-    float4 l = steps[si].left_src == SRC_REG ?
+    float l = steps[si].left_src == SRC_REG ?
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
     i = steps[si].right_index;
-    float4 r = steps[si].right_src == SRC_REG ?
+    float r = steps[si].right_src == SRC_REG ?
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
