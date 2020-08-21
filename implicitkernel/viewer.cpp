@@ -554,16 +554,24 @@ void viewer::init_ocl()
 #ifdef CLDEBUG
         optionStr += " -D CLDEBUG";
 #endif // CLDEBUG
-        s_program.build(optionStr.c_str());
+        try
+        {
+            s_program.build(optionStr.c_str());
 
-        s_kernel = new cl::make_kernel<
-            cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-            cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
+            s_kernel = new cl::make_kernel<
+                cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
+                cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
 #ifdef CLDEBUG
-            , cl_uint2
+                , cl_uint2
 #endif // CLDEBUG
-        >(s_program, "k_trace");
-
+            >(s_program, "k_trace");
+        }
+        catch (cl::Error error)
+        {
+            std::string log = s_program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(cl::Device::getDefault());
+            std::cerr << "Error - " << error.err() << " when building the kernel program. Error log: " << std::endl;
+            std::cerr << log << std::endl;
+        }
         s_globalMemSize = devices[0].getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
         s_maxBufSize = s_globalMemSize / 32;
         s_localMemSize = devices[0].getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();

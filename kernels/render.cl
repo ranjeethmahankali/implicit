@@ -1,4 +1,5 @@
 /* #define CLDEBUG */
+// Version 7
 #define BACKGROUND_COLOR 0xff101010
 #define BOUND_R_COLOR 0xff000020
 #define BOUND_G_COLOR 0xff002000
@@ -152,7 +153,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
 #ifdef CLDEBUG
   if (debugFlag){
     printf("Screen coords: (%02d, %02d)\n", mousePos.x, mousePos.y);
-    printf("Color: %08x", pBuffer[i]);
+    printf("Color: %08x\n", pBuffer[i]);
   }
 #endif
 }

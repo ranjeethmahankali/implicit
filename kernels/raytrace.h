@@ -41,10 +41,14 @@ uint sphere_trace(global uchar* packed,
   float4 d;
   for (int i = 0; i < iters; i++){
     d = f_entity(packed, offsets, types, valBuf, regBuf,
-                       nEntities, steps, nSteps, &pt);
+                       nEntities, steps, nSteps, &pt
+#ifdef CLDEBUG
+                 , debugFlag
+#endif
+                 );
     if (d.w < 0.0f) break;
     if (d.w < tolerance){
-      norm = (float3)(d.x, d.y, d.z);
+      norm = normalize((float3)(d.x, d.y, d.z));
       found = true;
       break;
     }
@@ -63,8 +67,11 @@ uint sphere_trace(global uchar* packed,
 
   pt -= dir * AMB_STEP;
   float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
-                        nEntities, steps, nSteps, &pt).w - d.w) / AMB_STEP;
-  norm = normalize(norm);
+                        nEntities, steps, nSteps, &pt
+#ifdef CLDEBUG
+                      , debugFlag
+#endif
+                        ).w - d.w) / AMB_STEP;
   d.w = dot(norm, -dir);
   float cd = 0.2f;
   float cl = 0.4f * amb + 0.6f;

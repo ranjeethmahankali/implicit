@@ -174,8 +174,12 @@ float4 f_halfspace(global uchar* ptr,
 }
 
 float4 f_simple(global uchar* ptr,
-               uchar type,
-               float3* pt)
+                uchar type,
+                float3* pt
+#ifdef CLDEBUG
+                , uchar debugFlag
+#endif
+                )
 {
   switch (type){
   case ENT_TYPE_BOX: return f_box(ptr, pt);
@@ -188,7 +192,11 @@ float4 f_simple(global uchar* ptr,
   }
 }
 
-float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt)
+float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt
+#ifdef CLDEBUG
+                      , uchar debugFlag
+#endif
+                      )
 {
     float3 p1 = (float3)(op.p1[0],
                          op.p1[1],
@@ -196,15 +204,32 @@ float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt)
     float3 p2 = (float3)(op.p2[0],
                          op.p2[1],
                          op.p2[2]);
-    float3 ln = p2 - p1;
-    float modLn = length(ln);
-    ln = normalize(ln);
-    float comp = dot((*pt) - p1, ln) / modLn;
-    comp = min(1.0f, max(0.0f, comp));
-    return (1.0f - comp) * a + comp * b;
+    float3 gLambda = (p2 - p1) / dot(p2 - p1, p2 - p1);
+    float lambda = dot((*pt) - p1, gLambda);
+    lambda = min(1.0f, max(0.0f, lambda));
+    float3 grad;
+    if (lambda == 0.0f){
+      grad = (float3)(a.x, a.y, a.z);
+    }
+    else if (lambda == 1.0f){
+      grad = (float3)(b.x, b.y, b.z);
+    }
+    else{
+      grad =
+        b.w * gLambda +
+        lambda * ((float3)(b.x, b.y, b.z)) - a.w * gLambda
+        + (1.0f - lambda) * ((float3)(a.x, a.y, a.z));
+    }
+
+    return (float4)(grad.x, grad.y, grad.z,
+                    lambda * b.w + (1.0f - lambda) * a.w);
 }
 
-float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt)
+float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt
+#ifdef CLDEBUG
+                         , uchar debugFlag
+#endif
+                         )
 {
     float3 p1 = (float3)(op.p1[0],
                          op.p1[1],
@@ -212,16 +237,35 @@ float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt)
     float3 p2 = (float3)(op.p2[0],
                          op.p2[1],
                          op.p2[2]);
-    float3 ln = p2 - p1;
-    float modLn = length(ln);
-    ln = normalize(ln);
-    float comp = dot((*pt) - p1, ln) / modLn;
-    comp = min(1.0f, max(0.0f, comp));
-    comp = 1.0f / (1.0f + pow(comp / (1.0f - comp), -2.0f));
-    return (1.0f - comp) * a + comp * b;
+    float3 gLambda = (p2 - p1) / dot(p2 - p1, p2 - p1);
+    float lambda = dot((*pt) - p1, gLambda);
+    gLambda *= (2 * (1.0f - lambda) * lambda) /
+      pow(2 * lambda * lambda - 2 * lambda + 1, 2.0f);
+    lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
+    lambda = min(1.0f, max(0.0f, lambda));
+    float3 grad;
+    if (lambda == 0.0f){
+      grad = (float3)(a.x, a.y, a.z);
+    }
+    else if (lambda == 1.0f){
+      grad = (float3)(b.x, b.y, b.z);
+    }
+    else{
+      grad =
+        b.w * gLambda +
+        lambda * ((float3)(b.x, b.y, b.z)) - a.w * gLambda
+        + (1.0f - lambda) * ((float3)(a.x, a.y, a.z));
+    }
+    
+    return (float4)(grad.x, grad.y, grad.z,
+                    lambda * b.w + (1.0f - lambda) * a.w);
 }
 
-float4 apply_op(op_defn op, float4 a, float4 b, float3* pt)
+float4 apply_op(op_defn op, float4 a, float4 b, float3* pt
+#ifdef CLDEBUG
+                      , uchar debugFlag
+#endif
+                )
 {
   switch(op.type){
   case OP_NONE: return a;
@@ -232,26 +276,41 @@ float4 apply_op(op_defn op, float4 a, float4 b, float3* pt)
   case OP_OFFSET: return (float4)(a.x, a.y, a.z,
                                   a.w - op.data.offset_distance);
 
-  case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt);
-  case OP_SMOOTHBLEND: return apply_smoothblend(op.data.smooth_blend, a, b, pt);
-    
+  case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt
+#ifdef CLDEBUG
+                      , debugFlag
+#endif
+                                          );
+  case OP_SMOOTHBLEND: return apply_smoothblend(op.data.smooth_blend, a, b, pt
+#ifdef CLDEBUG
+                      , debugFlag
+#endif
+                                                );
   default: return a;
   }
 }
 
 float4 f_entity(global uchar* packed,
-               global uint* offsets,
-               global uchar* types,
-               local float4* valBuf,
-               local float4* regBuf,
-               uint nEntities,
-               global op_step* steps,
-               uint nSteps,
-               float3* pt)
+                global uint* offsets,
+                global uchar* types,
+                local float4* valBuf,
+                local float4* regBuf,
+                uint nEntities,
+                global op_step* steps,
+                uint nSteps,
+                float3* pt
+#ifdef CLDEBUG
+                      , uchar debugFlag
+#endif
+                )
 {
   if (nSteps == 0){
     if (nEntities > 0)
-      return f_simple(packed, *types, pt);
+      return f_simple(packed, *types, pt
+#ifdef CLDEBUG
+                      , debugFlag
+#endif
+                      );
     else
       return 1.0f;
   }
@@ -260,7 +319,12 @@ float4 f_entity(global uchar* packed,
   uint bi = get_local_id(0);
   // Compute the values of simple entities.
   for (uint ei = 0; ei < nEntities; ei++){
-    valBuf[ei * bsize + bi] = f_simple(packed + offsets[ei], types[ei], pt);
+    valBuf[ei * bsize + bi] =
+      f_simple(packed + offsets[ei], types[ei], pt
+#ifdef CLDEBUG
+               , debugFlag
+#endif
+               );
   }
 
   // Perform the csg operations.
@@ -275,7 +339,12 @@ float4 f_entity(global uchar* packed,
       regBuf[i * bsize + bi] :
       valBuf[i * bsize + bi];
     
-    regBuf[steps[si].dest * bsize + bi] = apply_op(steps[si].op, l, r, pt);
+    regBuf[steps[si].dest * bsize + bi] =
+      apply_op(steps[si].op, l, r, pt
+#ifdef CLDEBUG
+                      , debugFlag
+#endif
+               );
   }
   
   return regBuf[bi];

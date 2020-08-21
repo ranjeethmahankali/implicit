@@ -6,6 +6,10 @@ static constexpr const char* renderKernelName = "render.cl";
 
 std::string cl_kernel_sources::render_kernel()
 {
+#ifdef CLDEBUG
+    std::string temp = load_source("raytrace.h");
+#endif // CLDEBUG
+
     return load_source(renderKernelName);
 }
 
