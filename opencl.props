@@ -12,7 +12,8 @@
       <AdditionalDependencies>OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>if exist $(SolutionDir)dependencies\clkernelsrc.exe $(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(ProjectDir)temp.cl"
+      <Command>if exist "%appdata%\NVIDIA\ComputeCache" del /f /s /q "%appdata%\NVIDIA\ComputeCache\*"
+if exist $(SolutionDir)dependencies\clkernelsrc.exe $(SolutionDir)dependencies\clkernelsrc.exe "$(SolutionDir)kernels" "$(ProjectDir)temp.cl"
 if exist "$(ProjectDir)temp.cl" del "$(ProjectDir)temp.cl"</Command>
     </PreBuildEvent>
     <PostBuildEvent>

@@ -1,5 +1,4 @@
 /* #define CLDEBUG */
-// Version 7
 #define BACKGROUND_COLOR 0xff101010
 #define BOUND_R_COLOR 0xff000020
 #define BOUND_G_COLOR 0xff002000
