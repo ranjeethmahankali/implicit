@@ -139,7 +139,7 @@ float4 f_schwarz(global uchar* ptr,
                 float3* pt)
 {
   CAST_TYPE(i_schwarz, lattice, ptr);
-  float factor = 8.0f / lattice->thickness;
+  float factor = 4.0f / lattice->thickness;
   float sx, sy, sz, cx, cy, cz;
   sx = sincos((*pt).x * lattice->scale, &cx);
   sy = sincos((*pt).y * lattice->scale, &cy);
