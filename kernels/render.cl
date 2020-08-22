@@ -108,6 +108,8 @@ uint sphere_trace(global uchar* packed,
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   float dTotal = 0.0f;
+  float dLast;
+  float3 pLast;
   float4 d;
   for (int i = 0; i < iters; i++){
     d = f_entity(packed, offsets, types, valBuf, regBuf,
@@ -125,6 +127,16 @@ uint sphere_trace(global uchar* packed,
 #ifdef CLDEBUG
       if (debugFlag) printf("Overshot into the inside of the body.\n");
 #endif
+      // So we approximate the surface with linear interpolation.
+      pt = (pt * dLast - pLast * d.w) / (dLast - d.w);
+      d = f_entity(packed, offsets, types, valBuf, regBuf,
+                   nEntities, steps, nSteps, &pt
+#ifdef CLDEBUG
+                   , debugFlag
+#endif
+                   );
+      found = true;
+      norm = normalize((float3)(d.x, d.y, d.z));
       break;
     }
     if (d.w < tolerance){
@@ -132,6 +144,8 @@ uint sphere_trace(global uchar* packed,
       found = true;
       break;
     }
+    dLast = d.w;
+    pLast = pt;
     pt += dir * (d.w * STEP_FOS);
     dTotal += d.w * STEP_FOS;
     if (i > 3 && dTotal > boundDist) break;
