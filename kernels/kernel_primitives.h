@@ -238,28 +238,29 @@ float4 apply_smoothblend(smooth_blend_data op, float4 a, float4 b, float3* pt
     float3 p2 = (float3)(op.p2[0],
                          op.p2[1],
                          op.p2[2]);
-    float3 gLambda = (p2 - p1) / dot(p2 - p1, p2 - p1);
+    float3 gLambda = p2 - p1;
+    gLambda /= dot(gLambda, gLambda);
     float lambda = dot((*pt) - p1, gLambda);
-    gLambda *= (2 * (1.0f - lambda) * lambda) /
-      pow(2 * lambda * lambda - 2 * lambda + 1, 2.0f);
-    lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
-    lambda = min(1.0f, max(0.0f, lambda));
-    float3 grad;
-    if (lambda == 0.0f){
-      grad = (float3)(a.x, a.y, a.z);
+    float4 result;
+    if (lambda <= 0.0f){
+      result = a;
     }
-    else if (lambda == 1.0f){
-      grad = (float3)(b.x, b.y, b.z);
+    else if (lambda >= 1.0f){
+      result = b;
     }
     else{
-      grad =
+      gLambda *= (2 * (1.0f - lambda) * lambda) /
+        pow(2 * lambda * lambda - 2 * lambda + 1, 2.0f);
+      lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
+      float3 grad =
         b.w * gLambda +
         lambda * ((float3)(b.x, b.y, b.z)) - a.w * gLambda
         + (1.0f - lambda) * ((float3)(a.x, a.y, a.z));
+      result = (float4)(grad.x, grad.y, grad.z,
+                        lambda * b.w + (1.0f - lambda) * a.w);
     }
     
-    return (float4)(grad.x, grad.y, grad.z,
-                    lambda * b.w + (1.0f - lambda) * a.w);
+    return result;
 }
 
 float4 apply_op(op_defn op, float4 a, float4 b, float3* pt

@@ -46,6 +46,11 @@ uint sphere_trace(global uchar* packed,
                  , debugFlag
 #endif
                  );
+#ifdef CLDEBUG
+    if (debugFlag){
+      printf("%.3f away...\n", d.w);
+    }
+#endif
     if (d.w < 0.0f){
 #ifdef CLDEBUG
       if (debugFlag) printf("Overshot into the inside of the body.\n");
