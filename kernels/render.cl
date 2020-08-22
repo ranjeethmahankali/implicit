@@ -108,8 +108,6 @@ uint sphere_trace(global uchar* packed,
   float3 norm = (float3)(0.0f, 0.0f, 0.0f);
   bool found = false;
   float dTotal = 0.0f;
-  float dLast;
-  float3 pLast;
   float4 d;
   for (int i = 0; i < iters; i++){
     d = f_entity(packed, offsets, types, valBuf, regBuf,
@@ -118,34 +116,14 @@ uint sphere_trace(global uchar* packed,
                  , debugFlag
 #endif
                  );
-#ifdef CLDEBUG
-    if (debugFlag){
-      printf("%.3f away...\n", d.w);
-    }
-#endif
-    if (d.w < 0.0f){
-#ifdef CLDEBUG
-      if (debugFlag) printf("Overshot into the inside of the body.\n");
-#endif
-      // So we approximate the surface with linear interpolation.
-      pt = (pt * dLast - pLast * d.w) / (dLast - d.w);
-      d = f_entity(packed, offsets, types, valBuf, regBuf,
-                   nEntities, steps, nSteps, &pt
-#ifdef CLDEBUG
-                   , debugFlag
-#endif
-                   );
-      found = true;
-      norm = normalize((float3)(d.x, d.y, d.z));
-      break;
-    }
-    if (d.w < tolerance){
+
+    if (d.w < 0.0f && dTotal == 0.0f) break; // Too close to camera.
+    if (d.w < tolerance && (-tolerance) < d.w){
       norm = normalize((float3)(d.x, d.y, d.z));
       found = true;
       break;
     }
-    dLast = d.w;
-    pLast = pt;
+
     pt += dir * (d.w * STEP_FOS);
     dTotal += d.w * STEP_FOS;
     if (i > 3 && dTotal > boundDist) break;
@@ -248,7 +226,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint i = coord.x + (coord.y * get_global_size(0));
 
   int iters = 500;
-  float tolerance = 0.0001f;
+  float tolerance = 0.001f;
 
   if (boundDist > 0.0f){
     pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
