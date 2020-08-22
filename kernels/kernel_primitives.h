@@ -136,11 +136,7 @@ float4 f_gyroid(global uchar* ptr,
 }
 
 float4 f_schwarz(global uchar* ptr,
-                float3* pt
-#ifdef CLDEBUG
-                 , uchar debugFlag
-#endif
-                 )
+                float3* pt)
 {
   CAST_TYPE(i_schwarz, lattice, ptr);
   float factor = 4.0f / lattice->thickness;
@@ -190,11 +186,7 @@ float4 f_simple(global uchar* ptr,
   case ENT_TYPE_BOX: return f_box(ptr, pt);
   case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
-  case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt
-#ifdef CLDEBUG
-                                          , debugFlag
-#endif
-                                          );
+  case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
   default: return (float4)(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
