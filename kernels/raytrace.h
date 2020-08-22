@@ -46,7 +46,12 @@ uint sphere_trace(global uchar* packed,
                  , debugFlag
 #endif
                  );
-    if (d.w < 0.0f) break;
+    if (d.w < 0.0f){
+#ifdef CLDEBUG
+      if (debugFlag) printf("Overshot into the inside of the body.\n");
+#endif
+      break;
+    }
     if (d.w < tolerance){
       norm = normalize((float3)(d.x, d.y, d.z));
       found = true;
@@ -66,21 +71,19 @@ uint sphere_trace(global uchar* packed,
   }
 
   pt -= dir * AMB_STEP;
-  float amb = (f_entity(packed, offsets, types, valBuf, regBuf,
-                        nEntities, steps, nSteps, &pt
+  float old = d.w;
+  d = f_entity(packed, offsets, types, valBuf, regBuf,
+               nEntities, steps, nSteps, &pt
 #ifdef CLDEBUG
-                      , debugFlag
+               , debugFlag
 #endif
-                        ).w - d.w) / AMB_STEP;
-  d.w = dot(norm, -dir);
-  float cd = 0.2f;
-  float cl = 0.4f * amb + 0.6f;
-  float3 color1 = (float3)(cd, cd, cd)*(1.0f - d.w) + (float3)(cl, cl, cl) * d.w;
+               );
+  float amb = (d.w - old) / AMB_STEP;
+  float c = 0.2f + dot(norm, -dir) * (0.4f * amb + 0.4f);
 #ifdef CLDEBUG
   if (debugFlag){
-    printf("Floating point color: (%.2f, %.2f, %.2f)\n",
-           color1.x, color1.y, color1.z);
+    printf("Floating point color: %.2f\n", c);
   }
 #endif
-  return colorToInt(color1);
+  return colorToInt((float3)(c, c, c));
 }

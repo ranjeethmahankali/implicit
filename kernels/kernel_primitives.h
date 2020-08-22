@@ -123,9 +123,9 @@ float4 f_gyroid(global uchar* ptr,
   sz = sincos((*pt).z * scale, &cz);
   float factor = 4.0f / thick;
   float fval = (sx * cy + sy * cz + sz * cx) / factor;
-  float4 result = (float4)((cx * cy + sy * cz + sz * (-sx)) / factor,
-                           (sx * (-sy) + cy * cz + sz * cx) / factor,
-                           (sx * cy + sy * (-sz) + cz * cx) / factor,
+  float4 result = (float4)((cx * cy + sz * (-sx)) / factor,
+                           (sx * (-sy) + cy * cz) / factor,
+                           (sy * (-sz) + cz * cx) / factor,
                            fabs(fval) - (thick / factor));
   if (fval < 0.0f){
     result.x *= -1.0f;
@@ -136,7 +136,11 @@ float4 f_gyroid(global uchar* ptr,
 }
 
 float4 f_schwarz(global uchar* ptr,
-                float3* pt)
+                float3* pt
+#ifdef CLDEBUG
+                 , uchar debugFlag
+#endif
+                 )
 {
   CAST_TYPE(i_schwarz, lattice, ptr);
   float factor = 4.0f / lattice->thickness;
@@ -145,15 +149,16 @@ float4 f_schwarz(global uchar* ptr,
   sy = sincos((*pt).y * lattice->scale, &cy);
   sz = sincos((*pt).z * lattice->scale, &cz);
   float fval = (cx + cy + cz) / factor;
-  float4 result = (float4)((-sx + cy + cz) / factor,
-                           (cx - sy + cz) / factor,
-                           (cx + cy - sz) / factor,
+  float4 result = (float4)(-sx / factor,
+                           -sy / factor,
+                           -sz / factor,
                            fabs(fval) - (lattice->thickness / factor));
   if (fval < 0.0f){
     result.x *= -1.0f;
     result.y *= -1.0f;
     result.z *= -1.0f;
   }
+  
   return result;
 }
 
@@ -185,7 +190,11 @@ float4 f_simple(global uchar* ptr,
   case ENT_TYPE_BOX: return f_box(ptr, pt);
   case ENT_TYPE_SPHERE: return f_sphere(ptr, pt);
   case ENT_TYPE_GYROID: return f_gyroid(ptr, pt);
-  case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
+  case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt
+#ifdef CLDEBUG
+                                          , debugFlag
+#endif
+                                          );
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
   default: return (float4)(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
