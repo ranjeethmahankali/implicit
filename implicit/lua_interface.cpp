@@ -17,6 +17,64 @@ luathrow(lstate, "Wrong number of arguments for the function.");}
 
 bool s_shouldExit = false;
 
+template <>
+float lua_interface::read_lua<float>(lua_State* L, int i)
+{
+    if (!lua_isnumber(L, i))
+        luathrow(L, "Cannot convert to a number");
+    return (float)lua_tonumber(L, i);
+}
+
+template <>
+double lua_interface::read_lua<double>(lua_State* L, int i)
+{
+    if (!lua_isnumber(L, i))
+        luathrow(L, "Cannot convert to a number");
+    return (double)lua_tonumber(L, i);
+}
+
+template <>
+int lua_interface::read_lua<int>(lua_State* L, int i)
+{
+    if (!lua_isnumber(L, i))
+        luathrow(L, "Cannot convert to a number");
+    return (int)lua_tonumber(L, i);
+}
+
+template <>
+std::string lua_interface::read_lua<std::string>(lua_State* L, int i)
+{
+    if (!lua_isstring(L, i))
+        luathrow(L, "Cannot readstring");
+    std::string ret = lua_tostring(L, i);
+    return ret;
+}
+
+template <>
+entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State* L, int i)
+{
+    using namespace entities;
+    if (!lua_isuserdata(L, i))
+        luathrow(L, "Not an entity...");
+    ent_ref ref = *(ent_ref*)lua_touserdata(L, i);
+    return ref;
+}
+
+template <>
+void lua_interface::push_lua<entities::ent_ref>(lua_State* L, const entities::ent_ref& ref)
+{
+    using namespace entities;
+    auto udata = (ent_ref*)lua_newuserdata(L, sizeof(ent_ref)); // Allocate space in lua's memory.
+    new (udata) ent_ref(ref); // Copy constrct the reference in the memory allocated above.
+    // Make a new table and push the functions to tell lua's GC how to delete this object.
+    lua_newtable(L);
+    lua_pushstring(L, "__gc");
+    lua_pushcfunction(L, delete_entity);;
+    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
+    viewer::show_entity(ref);
+}
+
 void lua_interface::init_lua()
 {
     if (s_luaState)
@@ -94,10 +152,10 @@ int lua_interface::box(lua_State* L)
     float bounds[6];
     for (int i = 1; i <= 6; i++)
     {
-        bounds[i - 1] = read_number<float>(L, i);
+        bounds[i - 1] = read_lua<float>(L, i);
     }
     using namespace entities;
-    push_entity(L, entity::wrap_simple(box3(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])));
+    push_lua(L, entity::wrap_simple(box3(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])));
     return 1;
 }
 
@@ -110,12 +168,12 @@ int lua_interface::sphere(lua_State* L)
     float center[3];
     for (int i = 0; i < 3; i++)
     {
-        center[i] = read_number<float>(L, i + 1);
+        center[i] = read_lua<float>(L, i + 1);
     }
-    float radius = read_number<float>(L, 4);
+    float radius = read_lua<float>(L, 4);
 
     using namespace entities;
-    push_entity(L, entity::wrap_simple(sphere3(center[0], center[1], center[2], radius)));
+    push_lua(L, entity::wrap_simple(sphere3(center[0], center[1], center[2], radius)));
     return 1;
 }
 
@@ -126,11 +184,11 @@ int lua_interface::cylinder(lua_State* L)
 
     float p1[3], p2[3], radius;
     for (int i = 0; i < 3; i++)
-        p1[i] = read_number<float>(L, i + 1);
+        p1[i] = read_lua<float>(L, i + 1);
     for (int i = 0; i < 3; i++)
-        p2[i] = read_number<float>(L, i + 4);
-    radius = read_number<float>(L, 7);
-    push_entity(L, entities::entity::wrap_simple(entities::cylinder3(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], radius)));
+        p2[i] = read_lua<float>(L, i + 4);
+    radius = read_lua<float>(L, 7);
+    push_lua(L, entities::entity::wrap_simple(entities::cylinder3(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], radius)));
     return 1;
 }
 
@@ -142,10 +200,10 @@ int lua_interface::halfspace(lua_State* L)
     float coords[6];
     for (int i = 0; i < 6; i++)
     {
-        coords[i] = read_number<float>(L, i + 1);
+        coords[i] = read_lua<float>(L, i + 1);
     }
 
-    push_entity(L, entities::entity::wrap_simple(entities::halfspace({ coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] })));
+    push_lua(L, entities::entity::wrap_simple(entities::halfspace({ coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] })));
     return 1;
 }
 
@@ -154,9 +212,9 @@ int lua_interface::gyroid(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 2, L);
 
-    float scale = read_number<float>(L, 1);
-    float thickness = read_number<float>(L, 2);
-    push_entity(L, entities::entity::wrap_simple(entities::gyroid(scale, thickness)));
+    float scale = read_lua<float>(L, 1);
+    float thickness = read_lua<float>(L, 2);
+    push_lua(L, entities::entity::wrap_simple(entities::gyroid(scale, thickness)));
     return 1;
 }
 
@@ -165,9 +223,9 @@ int lua_interface::schwarz(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 2, L);
 
-    float scale = read_number<float>(L, 1);
-    float thickness = read_number<float>(L, 2);
-    push_entity(L, entities::entity::wrap_simple(entities::schwarz(scale, thickness)));
+    float scale = read_lua<float>(L, 1);
+    float thickness = read_lua<float>(L, 2);
+    push_lua(L, entities::entity::wrap_simple(entities::schwarz(scale, thickness)));
     return 1;
 }
 
@@ -198,9 +256,9 @@ int lua_interface::offset(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 2, L);
 
-    ent_ref ref = read_entity(L, 1);
-    float dist = read_number<float>(L, 2);
-    push_entity(L, comp_entity::make_offset(ref, dist));
+    ent_ref ref = read_lua<ent_ref>(L, 1);
+    float dist = read_lua<float>(L, 2);
+    push_lua(L, comp_entity::make_offset(ref, dist));
     return 1;
 }
 
@@ -210,15 +268,15 @@ int lua_interface::linblend(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 8, L);
 
-    ent_ref e1 = read_entity(L, 1);
-    ent_ref e2 = read_entity(L, 2);
+    ent_ref e1 = read_lua<ent_ref>(L, 1);
+    ent_ref e2 = read_lua<ent_ref>(L, 2);
     float coords[6];
     for (int i = 3; i < 9; i++)
     {
-        coords[i - 3] = read_number<float>(L, i);
+        coords[i - 3] = read_lua<float>(L, i);
     }
 
-    push_entity(L, comp_entity::make_linblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
+    push_lua(L, comp_entity::make_linblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
     return 1;
 }
 
@@ -228,15 +286,15 @@ int lua_interface::smoothblend(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 8, L);
 
-    ent_ref e1 = read_entity(L, 1);
-    ent_ref e2 = read_entity(L, 2);
+    ent_ref e1 = read_lua<ent_ref>(L, 1);
+    ent_ref e2 = read_lua<ent_ref>(L, 2);
     float coords[6];
     for (int i = 3; i < 9; i++)
     {
-        coords[i - 3] = read_number<float>(L, i);
+        coords[i - 3] = read_lua<float>(L, i);
     }
 
-    push_entity(L, comp_entity::make_smoothblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
+    push_lua(L, comp_entity::make_smoothblend(e1, e2, { coords[0], coords[1], coords[2] }, { coords[3], coords[4], coords[5] }));
     return 1;
 }
 
@@ -246,7 +304,7 @@ int lua_interface::load(lua_State* L)
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 1, L);
 
-    std::string filepath = read_string(L, 1);
+    std::string filepath = read_lua<std::string>(L, 1);
     std::ifstream f;
     f.open(filepath);
     if (!f.is_open())
@@ -266,23 +324,6 @@ int lua_interface::load(lua_State* L)
     return 0;
 }
 
-std::string lua_interface::read_string(lua_State* L, int i)
-{
-    if (!lua_isstring(L, i))
-        luathrow(L, "Cannot readstring");
-    std::string ret = lua_tostring(L, i);
-    return ret;
-}
-
-entities::ent_ref lua_interface::read_entity(lua_State* L, int i)
-{
-    using namespace entities;
-    if (!lua_isuserdata(L, i))
-        luathrow(L, "Not an entity...");
-    ent_ref ref = *(ent_ref*)lua_touserdata(L, i);
-    return ref;
-}
-
 int lua_interface::boolean_operation(lua_State* L, op_defn op)
 {
     using namespace entities;
@@ -290,26 +331,12 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
     if (nargs != 2 && nargs != 3)
         luathrow(L, "Boolean either 2 entity args and an optional blend radius arg.");
 
-    ent_ref ref1 = read_entity(L, 1);
-    ent_ref ref2 = read_entity(L, 2);
+    ent_ref ref1 = read_lua<ent_ref>(L, 1);
+    ent_ref ref2 = read_lua<ent_ref>(L, 2);
     if (nargs == 3)
-        op.data.blend_radius = read_number<float>(L, 3);
-    push_entity(L, comp_entity::make_csg(ref1, ref2, op));
+        op.data.blend_radius = read_lua<float>(L, 3);
+    push_lua(L, comp_entity::make_csg(ref1, ref2, op));
     return 1;
-}
-
-void lua_interface::push_entity(lua_State* L, const entities::ent_ref& ref)
-{
-    using namespace entities;
-    auto udata = (ent_ref*)lua_newuserdata(L, sizeof(ent_ref)); // Allocate space in lua's memory.
-    new (udata) ent_ref(ref); // Copy constrct the reference in the memory allocated above.
-    // Make a new table and push the functions to tell lua's GC how to delete this object.
-    lua_newtable(L);
-    lua_pushstring(L, "__gc");
-    lua_pushcfunction(L, delete_entity);;
-    lua_settable(L, -3);
-    lua_setmetatable(L, -2);
-    viewer::show_entity(ref);
 }
 
 int lua_interface::show(lua_State* L)
@@ -318,7 +345,7 @@ int lua_interface::show(lua_State* L)
     CHECK_NUM_ARGS(nargs, 1, L);
 
     using namespace entities;
-    ent_ref ref = read_entity(L, 1);
+    ent_ref ref = read_lua<ent_ref>(L, 1);
     viewer::show_entity(ref);
     return 0;
 }
@@ -340,7 +367,7 @@ int lua_interface::viewer_debugmode(lua_State* L)
 {
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 1, L);
-    int arg = read_number<int>(L, 1);
+    int arg = read_lua<int>(L, 1);
     if (arg != 0 && arg != 1)
         luathrow(L, "Argument must be either 0 or 1.");
     viewer::setdebugmode(arg == 1 ? true : false);
@@ -360,7 +387,7 @@ int lua_interface::exportframe(lua_State* L)
 {
     int nargs = lua_gettop(L);
     CHECK_NUM_ARGS(nargs, 1, L);
-    std::string filepath = read_string(L, 1);
+    std::string filepath = read_lua<std::string>(L, 1);
     if (!viewer::exportframe(filepath))
         luathrow(L, "Failed to export the frame.");
     std::cout << "Frame was exported.\n";
@@ -374,7 +401,7 @@ int lua_interface::setbounds(lua_State* L)
     float bounds[6];
     for (int i = 0; i < 6; i++)
     {
-        bounds[i] = read_number<float>(L, i + 1);
+        bounds[i] = read_lua<float>(L, i + 1);
     }
     viewer::setbounds(bounds);
     return 0;

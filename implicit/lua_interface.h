@@ -23,17 +23,19 @@ namespace lua_interface
     void luathrow(lua_State* L, const std::string& error);
     void run_cmd(const std::string& line);
 
-    template <typename T> T read_number(lua_State* L, int i)
+    template <typename T>
+    T read_lua(lua_State* L, int i)
     {
-        if (!lua_isnumber(L, i))
-            luathrow(L, "Cannot convert to a number");
-        return (T)lua_tonumber(L, i);
+        static_assert(false, "Template specialization needed.");
     };
-    static std::string read_string(lua_State* L, int i);
-    static entities::ent_ref read_entity(lua_State* L, int i);
-    static int boolean_operation(lua_State* L, op_defn op);
 
-    void push_entity(lua_State* L, const entities::ent_ref& ref);
+    template <typename T>
+    void push_lua(lua_State* L, const T& ref)
+    {
+        static_assert(false, "Template specialization needed.");
+    }
+
+    static int boolean_operation(lua_State* L, op_defn op);
 
     int show(lua_State* L);
     int box(lua_State* L);
