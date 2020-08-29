@@ -67,6 +67,23 @@ namespace lua_interface
         };
     };
 
+    struct member_info
+    {
+        const char* type;
+        const char* name;
+        const char* desc;
+    };
+
+    struct func_info
+    {
+        const char* type;
+        const char* name;
+        const char* desc;
+        std::vector<member_info> arguments;
+        
+        func_info(const char* t, const char* n, const char* d, const std::vector<member_info>& args);
+    };
+
     static int boolean_operation(lua_State* L, op_defn op);
     int sphere(lua_State* L);
     int cylinder(lua_State* L);
@@ -81,9 +98,6 @@ namespace lua_interface
     int smoothblend(lua_State* L);
 
     int load(lua_State* L);
-
-    int exit(lua_State* L);
-    int quit(lua_State* L);
 
 #ifdef CLDEBUG
     int viewer_debugmode(lua_State* L);

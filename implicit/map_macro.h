@@ -76,4 +76,15 @@
    */
 #define MAP_LIST(f, ...) EVAL(MAP_LIST2(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
 
+#define MAP_LIST_MACRO(Cond) MAP_LIST_MACRO##Cond
+
+#define MAP_LIST_COND(Cond, f, ...) MAP_LIST_MACRO(Cond)(f, __VA_ARGS__)
+
+#define MAP_LIST_MACROtrue(f, ...) MAP_LIST(f, __VA_ARGS__)
+#define MAP_LIST_MACROfalse(f, ...)
+
+#define COND_COMMA(cond) COND_COMMA##cond
+#define COND_COMMAtrue ,
+#define COND_COMMAfalse
+
 #endif

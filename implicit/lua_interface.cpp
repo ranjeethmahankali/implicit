@@ -3,12 +3,6 @@
 #include "map_macro.h"
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
 
-#define _LUA_ARG_TYPE(type, name) type
-#define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE##arg_tuple
-
-#define _LUA_ARG_DECL(type, name) type name
-#define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL##arg_tuple
-
 // Function name macro for logging purposes.
 #ifndef __FUNCTION_NAME__
 #ifdef _MSC_VER //WINDOWS
@@ -97,25 +91,66 @@ void lua_interface::stop()
     lua_close(L);
 }
 
-#define LUA_FUNC(TReturn, FuncName, ...) \
-TReturn lua_fn_##FuncName(MAP_LIST(LUA_ARG_TYPE, __VA_ARGS__));\
-int lua_c_fn_##FuncName(lua_State* L){\
-return lua_interface::lua_func<TReturn, MAP_LIST(LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
-}\
-TReturn lua_fn_##FuncName(MAP_LIST(LUA_ARG_DECL, __VA_ARGS__))
+lua_interface::func_info::func_info(const char* t, const char* n, const char* d, const std::vector<member_info>& args) :
+    type(t),
+    name(n),
+    desc(d),
+    arguments(args)
+{
+};
 
-#define INIT_LUA_FUNC(lstate, name) lua_register(lstate, #name, lua_c_fn_##name)
+#define _LUA_ARG_TYPE(type, name, desc) type
+#define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE##arg_tuple
+
+#define _LUA_ARG_DECL(type, name, desc) type name
+#define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL##arg_tuple
+
+#define _LUA_ARG_DESC(type, name, desc) desc
+#define LUA_ARG_DESC(arg_tuple) _LUA_ARG_DECL##arg_tuple
+
+#define _ARG_INFO_INIT(type, name, desc) {#type, #name, desc}
+#define ARG_INFO_INIT(arg_tuple) _ARG_INFO_INIT##arg_tuple
+
+#define STRINGIFY(test) #test
+
+#define LUA_FUNC(TReturn, FuncName, HasArgs, FuncDesc, ...) \
+namespace lua_interface{\
+TReturn lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__));\
+int lua_c_fn_##FuncName(lua_State* L){\
+return lua_interface::lua_func<TReturn COND_COMMA(HasArgs) MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
+}\
+void lua_init_fn##FuncName(lua_State* L){\
+std::vector<member_info> argsVec = {MAP_LIST_COND(HasArgs, ARG_INFO_INIT, __VA_ARGS__)};\
+func_info info(typeid(TReturn).name(), "", FuncDesc, argsVec);\
+lua_register(L, #FuncName, lua_c_fn_##FuncName);}\
+}\
+TReturn lua_interface::lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_DECL, __VA_ARGS__))
+
+#define INIT_LUA_FUNC(lstate, name) lua_init_fn##name(lstate);
 
 using namespace entities;
 
-LUA_FUNC(void, show, (ent_ref, ref))
+LUA_FUNC(void, show, true, "Shows the given entity in the viewer.",
+    (ent_ref, ent, "The entity to be displayed."))
 {
-    viewer::show_entity(ref);
+    viewer::show_entity(ent);
 }
 
-LUA_FUNC(ent_ref, box, (float, xmin), (float, ymin), (float, zmin), (float, xmax), (float, ymax), (float, zmax))
+LUA_FUNC(ent_ref, box, true, "Creates and returns a box entity.",
+    (float, xmin, "The minimum coordinate of the box in the x direction."),
+    (float, ymin, "The minimum coordinate of the box in the y direction."),
+    (float, zmin, "The minimum coordinate of the box in the z direction."),
+    (float, xmax, "The maximum coordinate of the box in the x direction."),
+    (float, ymax, "The maximum coordinate of the box in the y direction."),
+    (float, zmax, "The maximum coordinate of the box in the z direction."))
 {
     return entity::wrap_simple(box3(xmin, ymin, zmin, xmax, ymax, zmax));
+}
+
+LUA_FUNC(void, exit, false, "Aborts the application.")
+{
+    std::cout << "Aborting...\n";
+    s_shouldExit = true;
 }
 
 void lua_interface::init_functions()
@@ -136,9 +171,6 @@ void lua_interface::init_functions()
     LUA_REG_FUNC(L, smoothblend);
 
     LUA_REG_FUNC(L, load);
-
-    LUA_REG_FUNC(L, exit);
-    LUA_REG_FUNC(L, quit);
 
 #ifdef CLDEBUG
     LUA_REG_FUNC(L, viewer_debugmode);
@@ -351,17 +383,6 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
     return 1;
 }
 
-int lua_interface::exit(lua_State* L)
-{
-    std::cout << "Aborting...\n";
-    s_shouldExit = true;
-    return 0;
-}
-
-int lua_interface::quit(lua_State* L)
-{
-    return lua_interface::exit(L);
-}
 
 #ifdef CLDEBUG
 int lua_interface::viewer_debugmode(lua_State* L)
