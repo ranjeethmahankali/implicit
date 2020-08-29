@@ -1,6 +1,13 @@
 #include <fstream>
 #include "lua_interface.h"
+#include "map_macro.h"
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
+
+#define _LUA_ARG_TYPE(type, name) type
+#define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE##arg_tuple
+
+#define _LUA_ARG_DECL(type, name) type name
+#define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL##arg_tuple
 
 // Function name macro for logging purposes.
 #ifndef __FUNCTION_NAME__
@@ -18,7 +25,7 @@ luathrow(lstate, "Wrong number of arguments for the function.");}
 bool s_shouldExit = false;
 
 template <>
-float lua_interface::read_lua<float>(lua_State* L, int i)
+float lua_interface::read_lua<float>(lua_State * L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -26,7 +33,7 @@ float lua_interface::read_lua<float>(lua_State* L, int i)
 }
 
 template <>
-double lua_interface::read_lua<double>(lua_State* L, int i)
+double lua_interface::read_lua<double>(lua_State * L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -34,7 +41,7 @@ double lua_interface::read_lua<double>(lua_State* L, int i)
 }
 
 template <>
-int lua_interface::read_lua<int>(lua_State* L, int i)
+int lua_interface::read_lua<int>(lua_State * L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -42,7 +49,7 @@ int lua_interface::read_lua<int>(lua_State* L, int i)
 }
 
 template <>
-std::string lua_interface::read_lua<std::string>(lua_State* L, int i)
+std::string lua_interface::read_lua<std::string>(lua_State * L, int i)
 {
     if (!lua_isstring(L, i))
         luathrow(L, "Cannot readstring");
@@ -51,7 +58,7 @@ std::string lua_interface::read_lua<std::string>(lua_State* L, int i)
 }
 
 template <>
-entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State* L, int i)
+entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State * L, int i)
 {
     using namespace entities;
     if (!lua_isuserdata(L, i))
@@ -61,7 +68,7 @@ entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State* L, int i
 }
 
 template <>
-void lua_interface::push_lua<entities::ent_ref>(lua_State* L, const entities::ent_ref& ref)
+void lua_interface::push_lua<entities::ent_ref>(lua_State * L, const entities::ent_ref & ref)
 {
     using namespace entities;
     auto udata = (ent_ref*)lua_newuserdata(L, sizeof(ent_ref)); // Allocate space in lua's memory.
@@ -90,10 +97,32 @@ void lua_interface::stop()
     lua_close(L);
 }
 
+#define LUA_FUNC(TReturn, FuncName, ...) \
+TReturn lua_fn_##FuncName(MAP_LIST(LUA_ARG_TYPE, __VA_ARGS__));\
+int lua_c_fn_##FuncName(lua_State* L){\
+return lua_interface::lua_func<TReturn, MAP_LIST(LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
+}\
+TReturn lua_fn_##FuncName(MAP_LIST(LUA_ARG_DECL, __VA_ARGS__))
+
+#define INIT_LUA_FUNC(lstate, name) lua_register(lstate, #name, lua_c_fn_##name)
+
+using namespace entities;
+
+LUA_FUNC(void, show, (ent_ref, ref))
+{
+    viewer::show_entity(ref);
+}
+
+LUA_FUNC(ent_ref, box, (float, xmin), (float, ymin), (float, zmin), (float, xmax), (float, ymax), (float, zmax))
+{
+    return entity::wrap_simple(box3(xmin, ymin, zmin, xmax, ymax, zmax));
+}
+
 void lua_interface::init_functions()
 {
     lua_State* L = state();
-    LUA_REG_FUNC(L, box);
+    INIT_LUA_FUNC(L, show);
+    INIT_LUA_FUNC(L, box);
     LUA_REG_FUNC(L, sphere);
     LUA_REG_FUNC(L, cylinder);
     LUA_REG_FUNC(L, halfspace);
@@ -108,7 +137,6 @@ void lua_interface::init_functions()
 
     LUA_REG_FUNC(L, load);
 
-    LUA_REG_FUNC(L, show);
     LUA_REG_FUNC(L, exit);
     LUA_REG_FUNC(L, quit);
 
@@ -141,22 +169,6 @@ void lua_interface::run_cmd(const std::string& line)
     {
         std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
     }
-}
-
-int lua_interface::box(lua_State* L)
-{
-    // Get num args.
-    int nargs = lua_gettop(L);
-    CHECK_NUM_ARGS(nargs, 6, L);
-
-    float bounds[6];
-    for (int i = 1; i <= 6; i++)
-    {
-        bounds[i - 1] = read_lua<float>(L, i);
-    }
-    using namespace entities;
-    push_lua(L, entity::wrap_simple(box3(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])));
-    return 1;
 }
 
 int lua_interface::sphere(lua_State* L)
@@ -337,17 +349,6 @@ int lua_interface::boolean_operation(lua_State* L, op_defn op)
         op.data.blend_radius = read_lua<float>(L, 3);
     push_lua(L, comp_entity::make_csg(ref1, ref2, op));
     return 1;
-}
-
-int lua_interface::show(lua_State* L)
-{
-    int nargs = lua_gettop(L);
-    CHECK_NUM_ARGS(nargs, 1, L);
-
-    using namespace entities;
-    ent_ref ref = read_lua<ent_ref>(L, 1);
-    viewer::show_entity(ref);
-    return 0;
 }
 
 int lua_interface::exit(lua_State* L)

@@ -26,5 +26,8 @@
     <ClInclude Include="lua_interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="map_macro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

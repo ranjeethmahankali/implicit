@@ -149,6 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lua_interface.h" />
+    <ClInclude Include="map_macro.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\implicitkernel\implicitkernel.vcxproj">

@@ -35,10 +35,39 @@ namespace lua_interface
         static_assert(false, "Template specialization needed.");
     }
 
-    static int boolean_operation(lua_State* L, op_defn op);
+    template <typename TReturn, typename... TArgs>
+    struct lua_func
+    {
+        template <typename FunctionType>
+        static int call_func(FunctionType func, const char* functionName, lua_State* L)
+        {
+            int nargs = lua_gettop(L);
+            if (nargs != sizeof...(TArgs))
+            {
+                std::cerr << "The function '" << functionName << "' expects " << sizeof...(TArgs) << " arguments.\n";
+                luathrow(L, "Incorrect number of arguments");
+            }
+            
+            if constexpr (std::is_void<TReturn>::value)
+            {
+                call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>());
+                return 0;
+            }
+            else
+            {
+                push_lua<TReturn>(L, call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>()));
+                return 1;
+            }
+        }
+    private:
+        template <typename FunctionType, int... N>
+        static TReturn call_fn_internal(FunctionType func, lua_State* L, std::integer_sequence<int, N...>)
+        {
+            return func(read_lua<TArgs>(L, N + 1)...);
+        };
+    };
 
-    int show(lua_State* L);
-    int box(lua_State* L);
+    static int boolean_operation(lua_State* L, op_defn op);
     int sphere(lua_State* L);
     int cylinder(lua_State* L);
     int halfspace(lua_State* L);
