@@ -91,13 +91,68 @@ void lua_interface::stop()
     lua_close(L);
 }
 
+int lua_interface::delete_entity(lua_State* L)
+{
+    using namespace entities;
+    //std::cout << "Deleting entity in lua ...." << std::endl;
+    ent_ref* ref = (ent_ref*)lua_touserdata(L, 1);
+    auto oldcount = ref->use_count();
+    //std::cout << "This object has " << oldcount << " owners before\n";
+    ref->~shared_ptr();
+    //if (oldcount > 1) std::cout << "This object has " << ref->use_count() << " owners after\n";
+    return 0;
+}
+
+void lua_interface::run_cmd(const std::string& line)
+{
+    lua_State* L = state();
+    int ret = luaL_dostring(L, line.c_str());
+    if (ret != LUA_OK)
+    {
+        std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
+    }
+}
+
+lua_State* lua_interface::state()
+{
+    return s_luaState;
+}
+
+bool lua_interface::should_exit()
+{
+    return s_shouldExit;
+}
+
+void lua_interface::luathrow(lua_State* L, const std::string& error)
+{
+    std::cout << std::endl;
+    lua_pushstring(L, error.c_str());
+    lua_error(L);
+    std::cout << std::endl << std::endl;
+}
+
 lua_interface::func_info::func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args) :
     type(t),
     name(n),
     desc(d),
     arguments(args)
 {
-};
+}
+
+void lua_interface::func_info::show_help(bool detailed) const
+{
+    std::cout << std::endl;
+    std::cout << type << " " << name << "(...)" << "\n\t" << desc << std::endl;
+    if (detailed)
+    {
+        std::cout << "\tArguments:\n";
+        for (const member_info& arg : arguments)
+        {
+            std::cout << "\t\t" << arg.type << " " << arg.name << ": " << arg.desc << std::endl;
+        }
+        std::cout << std::endl;
+    }
+}
 
 static std::unordered_map<std::string, lua_interface::func_info> s_functionInfos;
 
@@ -123,7 +178,7 @@ return lua_interface::lua_func<TReturn COND_COMMA(HasArgs) MAP_LIST_COND(HasArgs
 }\
 void lua_init_fn##FuncName(lua_State* L){\
 std::vector<member_info> argsVec = {MAP_LIST_COND(HasArgs, ARG_INFO_INIT, __VA_ARGS__)};\
-s_functionInfos.emplace(#FuncName, func_info(typeid(TReturn).name(), #FuncName, FuncDesc, argsVec));\
+s_functionInfos.emplace(#FuncName, func_info(#TReturn, #FuncName, FuncDesc, argsVec));\
 lua_register(L, #FuncName, lua_c_fn_##FuncName);}\
 }\
 TReturn lua_interface::lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_DECL, __VA_ARGS__))
@@ -235,7 +290,7 @@ LUA_FUNC(ent_ref, offset, true, "Creates an entity that is offset from the given
     return comp_entity::make_offset(ent, dist);
 }
 
-LUA_FUNC(ent_ref, linblend, true, "Creates a linear blend by interpolating the two bodies between the two points",
+LUA_FUNC(ent_ref, linblend, true, "Creates a linear blend by interpolating the two entities between the two points",
     (ent_ref, first, "First entity for the blend"),
     (ent_ref, second, "Second entity for the blend"),
     (float, xfirst, "The x coordinate of the first point for interpolation"),
@@ -248,7 +303,7 @@ LUA_FUNC(ent_ref, linblend, true, "Creates a linear blend by interpolating the t
     return comp_entity::make_linblend(first, second, { xfirst, yfirst, zfirst }, { xsecond, ysecond, zsecond });
 }
 
-LUA_FUNC(ent_ref, smoothblend, true, "Creates a smooth blend by interpolating (with an s-function) the two bodies between the two points",
+LUA_FUNC(ent_ref, smoothblend, true, "Creates a smooth blend by interpolating (with an s-function) the two entities between the two points",
     (ent_ref, first, "First entity for the blend"),
     (ent_ref, second, "Second entity for the blend"),
     (float, xfirst, "The x coordinate of the first point for interpolation"),
@@ -316,6 +371,24 @@ LUA_FUNC(void, setbounds, true, "Sets the bounds, or the build volume for the cu
     viewer::setbounds(bounds);
 }
 
+LUA_FUNC(void, help_all, false, "Shows a list of all functions and their descriptions")
+{
+    for (const auto& info : s_functionInfos)
+    {
+        info.second.show_help(false);
+    }
+}
+
+LUA_FUNC(void, help, true, "Shows the detailed help of a single function",
+    (std::string, functionName))
+{
+    auto match = s_functionInfos.find(functionName);
+    if (match != s_functionInfos.end())
+    {
+        match->second.show_help(true);
+    }
+}
+
 void lua_interface::init_functions()
 {
     lua_State* L = state();
@@ -343,44 +416,6 @@ void lua_interface::init_functions()
 
     INIT_LUA_FUNC(L, exportframe);
     INIT_LUA_FUNC(L, setbounds);
-}
-
-int lua_interface::delete_entity(lua_State* L)
-{
-    using namespace entities;
-    //std::cout << "Deleting entity in lua ...." << std::endl;
-    ent_ref* ref = (ent_ref*)lua_touserdata(L, 1);
-    auto oldcount = ref->use_count();
-    //std::cout << "This object has " << oldcount << " owners before\n";
-    ref->~shared_ptr();
-    //if (oldcount > 1) std::cout << "This object has " << ref->use_count() << " owners after\n";
-    return 0;
-}
-
-void lua_interface::run_cmd(const std::string& line)
-{
-    lua_State* L = state();
-    int ret = luaL_dostring(L, line.c_str());
-    if (ret != LUA_OK)
-    {
-        std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
-    }
-}
-
-lua_State* lua_interface::state()
-{
-    return s_luaState;
-}
-
-bool lua_interface::should_exit()
-{
-    return s_shouldExit;
-}
-
-void lua_interface::luathrow(lua_State* L, const std::string& error)
-{
-    std::cout << std::endl;
-    lua_pushstring(L, error.c_str());
-    lua_error(L);
-    std::cout << std::endl << std::endl;
+    INIT_LUA_FUNC(L, help_all);
+    INIT_LUA_FUNC(L, help);
 }

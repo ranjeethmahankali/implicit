@@ -15,7 +15,6 @@ namespace lua_interface
 {
     void init_lua();
     void stop();
-    static void init_functions();
     static int delete_entity(lua_State* L);
 
     lua_State* state();
@@ -90,5 +89,9 @@ namespace lua_interface
         std::vector<member_info> arguments;
         
         func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args);
+
+        void show_help(bool detailed) const;
     };
+
+    static void init_functions();
 }
