@@ -390,6 +390,10 @@ LUA_FUNC(void, help, true, "Shows the detailed help of a single function",
     {
         match->second.show_help(true);
     }
+    else
+    {
+        throw "Cannot find function with that name";
+    }
 }
 
 void lua_interface::init_functions()
@@ -409,7 +413,6 @@ void lua_interface::init_functions()
     INIT_LUA_FUNC(L, offset);
     INIT_LUA_FUNC(L, linblend);
     INIT_LUA_FUNC(L, smoothblend);
-
     INIT_LUA_FUNC(L, load);
 
 #ifdef CLDEBUG
