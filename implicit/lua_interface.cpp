@@ -165,19 +165,25 @@ static std::unordered_map<std::string, lua_interface::func_info> s_functionInfos
 #define _ARG_INFO_INIT(type, name, desc) {#type, #name, desc}
 #define ARG_INFO_INIT(arg_tuple) _ARG_INFO_INIT##arg_tuple
 
-#define STRINGIFY(test) #test
+#ifdef LUA_FUNC
+#error "The macro is already defined."
+#endif
 
 #define LUA_FUNC(TReturn, FuncName, HasArgs, FuncDesc, ...) \
 namespace lua_interface{\
+/*Declare the function without definition.*/\
 TReturn lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__));\
+/*Define the C function that calls the above function with the correct parameters read from the lua state.*/\
 int lua_c_fn_##FuncName(lua_State* L){\
 return lua_interface::lua_func<TReturn COND_COMMA(HasArgs) MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
 }\
+/*Define the function that registers this the above lua C function and all the help information.*/\
 void lua_init_fn##FuncName(lua_State* L){\
 std::vector<member_info> argsVec = {MAP_LIST_COND(HasArgs, ARG_INFO_INIT, __VA_ARGS__)};\
 s_functionInfos.emplace(#FuncName, func_info(#TReturn, #FuncName, FuncDesc, argsVec));\
 lua_register(L, #FuncName, lua_c_fn_##FuncName);}\
 }\
+/*The sigature of the function declared at the beginning, so that the user of the macro can write the definition.*/\
 TReturn lua_interface::lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_DECL, __VA_ARGS__))
 
 #define INIT_LUA_FUNC(lstate, name) lua_init_fn##name(lstate);
@@ -377,7 +383,7 @@ LUA_FUNC(void, help_all, false, "Shows a list of all functions and their descrip
 }
 
 LUA_FUNC(void, help, true, "Shows the detailed help of a single function",
-    (std::string, functionName))
+    (std::string, functionName, "The name of the function whose help information is to be shown"))
 {
     auto match = s_functionInfos.find(functionName);
     if (match != s_functionInfos.end())
