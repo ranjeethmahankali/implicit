@@ -162,9 +162,6 @@ static std::unordered_map<std::string, lua_interface::func_info> s_functionInfos
 #define _LUA_ARG_DECL(type, name, desc) type name
 #define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL##arg_tuple
 
-#define _LUA_ARG_DESC(type, name, desc) desc
-#define LUA_ARG_DESC(arg_tuple) _LUA_ARG_DECL##arg_tuple
-
 #define _ARG_INFO_INIT(type, name, desc) {#type, #name, desc}
 #define ARG_INFO_INIT(arg_tuple) _ARG_INFO_INIT##arg_tuple
 
