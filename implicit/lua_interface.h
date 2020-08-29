@@ -48,15 +48,23 @@ namespace lua_interface
                 luathrow(L, "Incorrect number of arguments");
             }
             
-            if constexpr (std::is_void<TReturn>::value)
+            try
             {
-                call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>());
-                return 0;
+                if constexpr (std::is_void<TReturn>::value)
+                {
+                    call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>());
+                    return 0;
+                }
+                else
+                {
+                    push_lua<TReturn>(L, call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>()));
+                    return 1;
+                }
             }
-            else
+            catch (const char* msg)
             {
-                push_lua<TReturn>(L, call_fn_internal(func, L, std::make_integer_sequence<int, sizeof...(TArgs)>()));
-                return 1;
+                luathrow(L, msg);
+                return 0;
             }
         }
     private:
@@ -69,41 +77,18 @@ namespace lua_interface
 
     struct member_info
     {
-        const char* type;
-        const char* name;
-        const char* desc;
+        std::string type;
+        std::string name;
+        std::string desc;
     };
 
     struct func_info
     {
-        const char* type;
-        const char* name;
-        const char* desc;
+        std::string type;
+        std::string name;
+        std::string desc;
         std::vector<member_info> arguments;
         
-        func_info(const char* t, const char* n, const char* d, const std::vector<member_info>& args);
+        func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args);
     };
-
-    static int boolean_operation(lua_State* L, op_defn op);
-    int sphere(lua_State* L);
-    int cylinder(lua_State* L);
-    int halfspace(lua_State* L);
-    int gyroid(lua_State* L);
-    int schwarz(lua_State* L);
-    int bunion(lua_State* L);
-    int bintersect(lua_State* L);
-    int bsubtract(lua_State* L);
-    int offset(lua_State* L);
-    int linblend(lua_State* L);
-    int smoothblend(lua_State* L);
-
-    int load(lua_State* L);
-
-#ifdef CLDEBUG
-    int viewer_debugmode(lua_State* L);
-    int viewer_debugstep(lua_State* L);
-#endif // CLDEBUG
-
-    int exportframe(lua_State* L);
-    int setbounds(lua_State* L);
 }
