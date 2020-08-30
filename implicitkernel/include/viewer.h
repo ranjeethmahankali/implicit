@@ -28,12 +28,28 @@ constexpr char ARROWS[] = ">>> ";
 
 namespace camera
 {
+    /**
+     * \brief The distance of the camera from the target
+     * \return float The distance.
+     */
     float distance();
+    /**
+     * \brief The polar coordinate theta of the camera with respect to the target.
+     * \return float The angle.
+     */
     float theta();
+    /**
+     * \brief The polar coordinate phi of the camera with respect to the target.
+     * \return float The angle.
+     */
     float phi();
+    /**
+     * \brief The target of the camera.
+     * \return glm::vec3 The target location.
+     */
     glm::vec3 target();
 
-    // Handlers.
+    // Handlers for mouse events.
     void on_mouse_move(GLFWwindow* window, double xpos, double ypos);
     void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
     void on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset);
@@ -57,6 +73,9 @@ namespace viewer
 
     bool log_gl_errors(const char* function, const char* file, uint32_t line);
     void clear_gl_errors();
+    /**
+     * \brief Initializes the OpenGL part of the environment.
+     */
     void init_ogl();
     void close_window();
     static const char* cl_err_str(cl_int err);
@@ -68,6 +87,9 @@ namespace viewer
     void render_loop();
     void stop();
 
+    /**
+     * \brief Initializes the OpenCL part of the environment.
+     */
     void init_ocl();
     void init_buffers();
     void set_work_group_size();
