@@ -193,6 +193,27 @@ float4 f_simple(global uchar* ptr,
   }
 }
 
+float4 apply_union(float blend_radius,
+                   float4 a,
+                   float4 b,
+                   float3* pt
+#ifdef CLDEBUG
+                   , uchar debugFlag
+#endif
+                   )
+{
+  if (a.w < blend_radius && b.w < blend_radius){
+    float2 diff = (float2)(blend_radius - a.w, blend_radius - b.w);
+    float3 grad =
+      diff.x * normalize((float3)(a.x, a.y, a.z)) +
+      diff.y * normalize((float3)(b.x, b.y, b.z));
+    return (float4)(grad.x, grad.y, grad.z, blend_radius - length(diff));
+  }
+  else{
+    return a.w < b.w ? a : b;
+  }
+}
+
 float4 apply_linblend(lin_blend_data op, float4 a, float4 b, float3* pt
 #ifdef CLDEBUG
                       , uchar debugFlag
@@ -271,7 +292,11 @@ float4 apply_op(op_defn op, float4 a, float4 b, float3* pt
 {
   switch(op.type){
   case OP_NONE: return a;
-  case OP_UNION: return a.w < b.w ? a : b;// min(a, b);
+  case OP_UNION: return apply_union(op.data.blend_radius, a, b, pt
+#ifdef CLDEBUG
+                                    , uchar debugFlag
+#endif
+                                    );
   case OP_INTERSECTION: return a.w < b.w ? b : a;//max(a, b);
   case OP_SUBTRACTION: return a.w < (-b.w) ? (-b) : a; //max(a, -b);
 

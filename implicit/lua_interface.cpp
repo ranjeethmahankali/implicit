@@ -396,6 +396,17 @@ LUA_FUNC(void, help, true, "Shows the detailed help of a single function",
     }
 }
 
+LUA_FUNC(ent_ref, filleted_union, true, "Creates a boolean union of the given entities with the meeting edges filleted",
+    (ent_ref, first, "The first entity"),
+    (ent_ref, second, "The second entity"),
+    (float, filletRadius, "The fillet radius"))
+{
+    op_defn op;
+    op.type = op_type::OP_UNION;
+    op.data.blend_radius = filletRadius;
+    return comp_entity::make_csg(first, second, op);
+}
+
 void lua_interface::init_functions()
 {
     lua_State* L = state();
@@ -424,4 +435,5 @@ void lua_interface::init_functions()
     INIT_LUA_FUNC(L, setbounds);
     INIT_LUA_FUNC(L, help_all);
     INIT_LUA_FUNC(L, help);
+    INIT_LUA_FUNC(L, filleted_union);
 }
