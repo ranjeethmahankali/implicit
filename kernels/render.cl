@@ -234,8 +234,12 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint step = 1 << levelOfDetail;
 #ifdef CLDEBUG
   uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
-  if (debugFlag) printf("\n");
+  if (debugFlag){
+    printf("\n");
+    printf("Pixel stride is %u\n", step);
+  }
 #endif
+  uint i = coord.x + (coord.y * get_global_size(0));
   if (coord.x % step == 0 && coord.y % step == 0){
     float3 pos, dir;
     float boundDist;
@@ -245,7 +249,6 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                         , debugFlag
 #endif
                         );
-    uint i = coord.x + (coord.y * get_global_size(0));
     if (boundDist > 0.0f){
       pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
                                 nEntities, steps, nSteps, pos, dir,
@@ -260,16 +263,24 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
       pBuffer[i] = BACKGROUND_COLOR;
     }
   }
-  else{
-    uint i = coord.x + (coord.y * get_global_size(0));
-    coord.x -= coord.x % step;
-    coord.y -= coord.y % step;
-    pBuffer[i] = pBuffer[coord.x + (coord.y * get_global_size(0))];
-  }
 #ifdef CLDEBUG
   if (debugFlag){
     printf("Screen coords: (%02d, %02d)\n", mousePos.x, mousePos.y);
     printf("Color: %08x\n", pBuffer[i]);
   }
 #endif
+}
+
+kernel void k_repeatPixels(global uint* pBuffer,
+                           uchar levelOfDetail)
+{
+  uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
+  uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
+  uint step = 1 << levelOfDetail;
+  uint i = coord.x + (coord.y * get_global_size(0));
+  if (coord.x % step != 0 || coord.y % step != 0){
+    coord.x -= (coord.x % step);
+    coord.y -= (coord.y % step);
+    pBuffer[i] = pBuffer[coord.x + (coord.y * get_global_size(0))];
+  }
 }

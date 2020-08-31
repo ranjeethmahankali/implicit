@@ -53,6 +53,7 @@ static cl::make_kernel<
     , cl_uint2
 #endif // CLDEBUG
 >* s_kernel;
+static cl::make_kernel<cl::BufferGL&, cl_uchar>* s_repeatPixelKernel;
 
 static cl::BufferGL s_pBuffer; // Pixels to be rendered to the screen. Controlled by OpenCL.
 static cl::Buffer s_packedBuf; // Packed bytes of simple entities.
@@ -60,7 +61,7 @@ static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
 static cl::Buffer s_viewerDataBuf; // Buffer contains viewer data, camera position, direction and build volume bounds.
-static uint8_t s_levelOfDetail = 1;
+static uint8_t s_levelOfDetail = LOWEST_LOD;
 static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
 static cl::LocalSpaceArg s_regBuf; // Register to store intermediate csg values.
 static size_t s_numCurrentEntities = 0;
@@ -410,6 +411,7 @@ void viewer::stop()
     GL_CALL(glfwSetWindowShouldClose(s_window, GL_TRUE));
     glfwTerminate();
     delete s_kernel;
+    delete s_repeatPixelKernel;
 }
 
 void viewer::render()
@@ -431,6 +433,7 @@ void viewer::render()
                 mousePos = { x, WIN_H - y };
             }
 #endif // CLDEBUG
+            cl::EnqueueArgs args = cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64));
             viewer_data vdata
             {
                 camera::distance(), camera::theta(), camera::phi(),
@@ -439,7 +442,8 @@ void viewer::render()
                 s_maxBounds
             };
             s_queue.enqueueWriteBuffer(s_viewerDataBuf, CL_TRUE, 0, sizeof(vdata), &vdata);
-            (*s_kernel)(cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64)),
+            (*s_kernel)(
+                args,
                 s_pBuffer,
                 s_packedBuf,
                 s_typeBuf,
@@ -455,6 +459,10 @@ void viewer::render()
                 , mousePos
 #endif // CLDEBUG
             );
+            if (s_repeatPixelKernel)
+            {
+                (*s_repeatPixelKernel)(args, s_pBuffer, (cl_uchar)s_levelOfDetail);
+            }
             update_LOD();
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
@@ -583,6 +591,8 @@ void viewer::init_ocl()
                 , cl_uint2
 #endif // CLDEBUG
             >(s_program, "k_trace");
+
+            s_repeatPixelKernel = new cl::make_kernel<cl::BufferGL&, cl_uchar>(s_program, "k_repeatPixels");
         }
         catch (cl::Error error)
         {
