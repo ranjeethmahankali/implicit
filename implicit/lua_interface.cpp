@@ -410,7 +410,7 @@ LUA_FUNC(ent_ref, filleted_union, true, "Creates a boolean union of the given en
     return comp_entity::make_csg(first, second, op);
 }
 
-LUA_FUNC(ent_ref, filleted_intersection, true, "Creates a boolean intersection of the given entities with the meeting edges filleted.",
+LUA_FUNC(ent_ref, filleted_intersection, true, "Creates a boolean intersection of the given entities with the meeting edges filleted",
     (ent_ref, first, "The first entity"),
     (ent_ref, second, "The second entity"),
     (float, filletRadius, "The fillet radius"))
@@ -421,7 +421,7 @@ LUA_FUNC(ent_ref, filleted_intersection, true, "Creates a boolean intersection o
     return comp_entity::make_csg(first, second, op);
 }
 
-LUA_FUNC(ent_ref, filleted_subtraction, true, "Creates a boolean subtraction of the given entities with the meeting edges filleted.",
+LUA_FUNC(ent_ref, filleted_subtraction, true, "Creates a boolean subtraction of the given entities with the meeting edges filleted",
     (ent_ref, first, "The first entity"),
     (ent_ref, second, "The second entity"),
     (float, filletRadius, "The fillet radius"))
@@ -430,6 +430,22 @@ LUA_FUNC(ent_ref, filleted_subtraction, true, "Creates a boolean subtraction of 
     op.type = op_type::OP_SUBTRACTION;
     op.data.blend_radius = filletRadius;
     return comp_entity::make_csg(first, second, op);
+}
+
+LUA_FUNC(void, adaptive_rendermode, true, "Sets the level of detail for the adaptive rendering mode",
+    (int, lod, "Level of detail, must be between 0 and 8"))
+{
+    if (lod < 0)
+    {
+        std::cout << "Level of detail cannot be negative. Setting LOD to zero.\n";
+        lod = 0;
+    }
+    else if (lod > 8)
+    {
+        std::cout << "Value too high. Using 8 as the LOD.\n";
+        lod = 8;
+    }
+    viewer::adaptive_rendermode((uint8_t)lod);
 }
 
 void lua_interface::init_functions()
@@ -463,4 +479,5 @@ void lua_interface::init_functions()
     INIT_LUA_FUNC(L, filleted_union);
     INIT_LUA_FUNC(L, filleted_intersection);
     INIT_LUA_FUNC(L, filleted_subtraction);
+    INIT_LUA_FUNC(L, adaptive_rendermode);
 }

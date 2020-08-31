@@ -27,7 +27,6 @@ static constexpr float CAM_THETA = 0.6f;
 static constexpr float CAM_PHI = 0.77f;
 static constexpr glm::vec3 CAM_TARGET = { 0.0f, 0.0f, 0.0f };
 static constexpr float ORBIT_ANG = 0.005f;
-static constexpr uint8_t LOWEST_LOD = 4;
 
 static bool s_leftDown = false;
 static bool s_rightDown = false;
@@ -36,6 +35,8 @@ static float s_camTheta = CAM_THETA;
 static float s_camPhi = CAM_PHI;
 static glm::vec3 s_camTarget = CAM_TARGET;
 static glm::dvec2 s_mousePos = { 0.0, 0.0 };
+
+static uint8_t s_lowestLOD = 0;
 
 //static constexpr uint32_t WIN_W = 960, WIN_H = 640;
 static constexpr uint32_t WIN_W = 1024, WIN_H = 728;
@@ -61,7 +62,7 @@ static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
 static cl::Buffer s_viewerDataBuf; // Buffer contains viewer data, camera position, direction and build volume bounds.
-static uint8_t s_levelOfDetail = LOWEST_LOD;
+static uint8_t s_levelOfDetail = s_lowestLOD;
 static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
 static cl::LocalSpaceArg s_regBuf; // Register to store intermediate csg values.
 static size_t s_numCurrentEntities = 0;
@@ -480,7 +481,7 @@ void viewer::update_LOD()
 
 void viewer::reset_LOD()
 {
-    s_levelOfDetail = LOWEST_LOD;
+    s_levelOfDetail = s_lowestLOD;
 }
 
 bool viewer::exportframe(const std::string& path)
@@ -534,6 +535,12 @@ void viewer::setbounds(float(&bounds)[6])
     s_maxBounds.x = bounds[3];
     s_maxBounds.y = bounds[4];
     s_maxBounds.z = bounds[5];
+}
+
+void viewer::adaptive_rendermode(uint8_t lod)
+{
+    if (lod > 8) lod = 8;
+    s_lowestLOD = lod;
 }
 
 #ifdef CLDEBUG
