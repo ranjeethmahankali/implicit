@@ -16,14 +16,13 @@ float f_box(global uchar* packed,
 {
   CAST_TYPE(i_box, box, packed);
   global float* bounds = box->bounds;
-  float result = -FLT_MAX;
-  result = max(result, (*pt).x - bounds[3]);
-  result = max(result, bounds[0] - (*pt).x);
-  result = max(result, (*pt).y - bounds[4]);
-  result = max(result, bounds[1] - (*pt).y);
-  result = max(result, (*pt).z - bounds[5]);
-  result = max(result, bounds[2] - (*pt).z);
-  return result;
+  return
+    length((float3)(max(0.0f, fabs((*pt).x - bounds[0]) - bounds[3]),
+                    max(0.0f, fabs((*pt).y - bounds[1]) - bounds[4]),
+                    max(0.0f, fabs((*pt).z - bounds[2]) - bounds[5]))) -
+    min(min(max(0.0f, bounds[3] - fabs((*pt).x - bounds[0])),
+            max(0.0f, bounds[4] - fabs((*pt).y - bounds[1]))),
+        max(0.0f, bounds[5] - fabs((*pt).z - bounds[2])));
 }
 
 float f_sphere(global uchar* ptr,

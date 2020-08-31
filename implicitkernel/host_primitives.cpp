@@ -5,8 +5,8 @@
 #pragma warning(push)
 #pragma warning(disable : 26812)
 
-entities::box3::box3(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax)
-    :min(xmin, ymin, zmin), max(xmax, ymax, zmax)
+entities::box3::box3(float xcenter, float ycenter, float zcenter, float xhalf, float yhalf, float zhalf)
+    :center(xcenter, ycenter, zcenter), halfsize(xhalf, yhalf, zhalf)
 {
 }
 
@@ -23,8 +23,8 @@ size_t entities::box3::num_render_bytes() const
 void entities::box3::write_render_bytes(uint8_t*& bytes) const
 {
     i_box ient = {
-        min.x, min.y, min.z,
-        max.x, max.y, max.z
+        center.x, center.y, center.z,
+        halfsize.x, halfsize.y, halfsize.z
     };
     std::memcpy(bytes, &ient, sizeof(ient));
     bytes += sizeof(ient);

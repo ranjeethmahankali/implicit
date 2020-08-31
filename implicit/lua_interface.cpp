@@ -203,14 +203,14 @@ LUA_FUNC(void, show, true, "Shows the given entity in the viewer",
 }
 
 LUA_FUNC(ent_ref, box, true, "Creates and returns a box entity",
-    (float, xmin, "The minimum coordinate of the box in the x direction"),
-    (float, ymin, "The minimum coordinate of the box in the y direction"),
-    (float, zmin, "The minimum coordinate of the box in the z direction"),
-    (float, xmax, "The maximum coordinate of the box in the x direction"),
-    (float, ymax, "The maximum coordinate of the box in the y direction"),
-    (float, zmax, "The maximum coordinate of the box in the z direction"))
+    (float, xcenter, "The x coordinate of the center of the box."),
+    (float, ycenter, "The y coordinate of the center of the box."),
+    (float, zcenter, "The z coordinate of the center of the box."),
+    (float, xhalf, "Half-size of the box in the x direction"),
+    (float, yhalf, "Half-size of the box in the y direction"),
+    (float, zhalf, "Half-size of the box in the z direction"))
 {
-    return entity::wrap_simple(box3(xmin, ymin, zmin, xmax, ymax, zmax));
+    return entity::wrap_simple(box3(xcenter, ycenter, zcenter, xhalf, yhalf, zhalf));
 }
 
 LUA_FUNC(ent_ref, sphere, true, "Creates a sphere",

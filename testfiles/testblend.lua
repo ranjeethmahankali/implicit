@@ -1,5 +1,5 @@
-b1 = box(-3, -3, -3, 3, 3, 5)
-b2 = box(-3, -3, -3, 0, 0, 5)
+b1 = box(0, 0, 1, 3, 3, 4)
+b2 = box(-1.5, -1.5, 1, 1.5, 1.5, 4)
 b = linblend(b1, b2, 0, 0, 0, 0, 0, 3)
 --b = smoothblend(b1, b2, 0, 0, 0, 0, 0, 3)
 --exportframe("C:\\Users\\ranje\\Desktop\\testing.bmp")

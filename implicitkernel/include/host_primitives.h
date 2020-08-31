@@ -253,18 +253,18 @@ namespace entities
      */
     struct box3 : public simp_entity
     {
-        glm::vec3 min;
-        glm::vec3 max;
+        glm::vec3 center;
+        glm::vec3 halfsize;
         /**
          * \brief Construct a new box3 object
-         * \param xmin The maximum x coordinate
-         * \param ymin The maximum y coordinate
-         * \param zmin The maximum z coordinate
-         * \param xmax The minimum x coordinate
-         * \param ymax The minimum y coordinate
-         * \param zmax The minimum z coordinate
+         * \param xcenter The maximum x coordinate
+         * \param ycenter The maximum y coordinate
+         * \param zcenter The maximum z coordinate
+         * \param xhalf The minimum x coordinate
+         * \param xhalf The minimum y coordinate
+         * \param xhalf The minimum z coordinate
          */
-        box3(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax);
+        box3(float xcenter, float ycenter, float zcenter, float xhalf, float yhalf, float zhalf);
 
         virtual uint8_t type() const;
         virtual size_t num_render_bytes() const;
