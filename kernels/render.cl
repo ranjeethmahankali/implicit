@@ -8,6 +8,8 @@
 #define AMB_STEP 0.05f
 #define STEP_FOS 0.9f
 #define EPSILON 0.0001
+#define NUM_ITERS 500
+#define TOLERANCE 0.00001f
 
 #include "kernel_primitives.h"
 
@@ -220,7 +222,8 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
                     uint nEntities, // The number of simple entities.
                     global op_step* steps, // CSG steps.
                     uint nSteps, // Number of csg steps.
-                    __constant float* viewerData
+                    __constant float* viewerData,
+                    uchar levelOfDetail
 #ifdef CLDEBUG
                     , uint2 mousePos // Mouse position in pixels.
 #endif
@@ -228,37 +231,40 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
 {
   uint2 dims = (uint2)(get_global_size(0), get_global_size(1));
   uint2 coord = (uint2)(get_global_id(0), get_global_id(1));
+  uint step = 1 << levelOfDetail;
 #ifdef CLDEBUG
   uchar debugFlag = (uchar)(coord.x == mousePos.x && coord.y == mousePos.y);
   if (debugFlag) printf("\n");
 #endif
-  float3 pos, dir;
-  float boundDist;
-  uint color;
-  perspective_project(viewerData, coord, dims, &pos, &dir, &boundDist, &color
+  if (coord.x % step == 0 && coord.y % step == 0){
+    float3 pos, dir;
+    float boundDist;
+    uint color;
+    perspective_project(viewerData, coord, dims, &pos, &dir, &boundDist, &color
 #ifdef CLDEBUG
-                      , debugFlag
+                        , debugFlag
 #endif
-                      );
-  uint i = coord.x + (coord.y * get_global_size(0));
-
-  int iters = 500;
-  float tolerance = 0.00001f;
-
-  if (boundDist > 0.0f){
-    pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
-                              nEntities, steps, nSteps, pos, dir,
-                              iters, tolerance, boundDist
+                        );
+    uint i = coord.x + (coord.y * get_global_size(0));
+    if (boundDist > 0.0f){
+      pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
+                                nEntities, steps, nSteps, pos, dir,
+                                NUM_ITERS, TOLERANCE, boundDist
 #ifdef CLDEBUG
-                              , debugFlag
+                                , debugFlag
 #endif
-                              );
-    if (pBuffer[i] == BACKGROUND_COLOR){
-      pBuffer[i] = color;
+                                );
+      if (pBuffer[i] == BACKGROUND_COLOR) pBuffer[i] = color;
+    }
+    else{
+      pBuffer[i] = BACKGROUND_COLOR;
     }
   }
   else{
-    pBuffer[i] = BACKGROUND_COLOR;
+    uint i = coord.x + (coord.y * get_global_size(0));
+    coord.x -= coord.x % step;
+    coord.y -= coord.y % step;
+    pBuffer[i] = pBuffer[coord.x + (coord.y * get_global_size(0))];
   }
 #ifdef CLDEBUG
   if (debugFlag){

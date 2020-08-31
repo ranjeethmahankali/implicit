@@ -100,6 +100,8 @@ namespace viewer
     void show_entity(entities::ent_ref entity);
 
     void render();
+    void update_LOD();
+    void reset_LOD();
     bool exportframe(const std::string& path);
     void setbounds(float(&bounds)[6]);
 

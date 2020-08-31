@@ -27,6 +27,7 @@ static constexpr float CAM_THETA = 0.6f;
 static constexpr float CAM_PHI = 0.77f;
 static constexpr glm::vec3 CAM_TARGET = { 0.0f, 0.0f, 0.0f };
 static constexpr float ORBIT_ANG = 0.005f;
+static constexpr uint8_t LOWEST_LOD = 8;
 
 static bool s_leftDown = false;
 static bool s_rightDown = false;
@@ -47,7 +48,7 @@ static uint32_t s_pboId = 0; // Pixel buffer to be rendered to screen, controlle
 static cl::Program s_program;
 static cl::make_kernel<
     cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-    cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
+    cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&, cl_uchar
 #ifdef CLDEBUG
     , cl_uint2
 #endif // CLDEBUG
@@ -59,6 +60,7 @@ static cl::Buffer s_typeBuf; // The types of simple entities.
 static cl::Buffer s_offsetBuf; // Offsets where the simple entities start in the packedBuf.
 static cl::Buffer s_opStepBuf; // Buffer containing csg operators.
 static cl::Buffer s_viewerDataBuf; // Buffer contains viewer data, camera position, direction and build volume bounds.
+static uint8_t s_levelOfDetail = 1;
 static cl::LocalSpaceArg s_valueBuf; // Local buffer for storing the values of implicit functions when computing csg operations.
 static cl::LocalSpaceArg s_regBuf; // Register to store intermediate csg values.
 static size_t s_numCurrentEntities = 0;
@@ -444,17 +446,30 @@ void viewer::render()
                 (cl_uint)s_numCurrentEntities,
                 s_opStepBuf,
                 (cl_uint)s_opStepCount,
-                s_viewerDataBuf
+                s_viewerDataBuf,
+                (cl_uchar)s_levelOfDetail
 #ifdef CLDEBUG
                 , mousePos
 #endif // CLDEBUG
             );
+            update_LOD();
         }
         clEnqueueReleaseGLObjects(s_queue(), 1, &mem, 0, 0, 0);
         s_queue.flush();
         s_queue.finish();
     }
     CATCH_EXIT_CL_ERR;
+}
+
+void viewer::update_LOD()
+{
+    if (s_levelOfDetail > 1)
+        s_levelOfDetail--;
+}
+
+void viewer::reset_LOD()
+{
+    s_levelOfDetail = LOWEST_LOD;
 }
 
 bool viewer::exportframe(const std::string& path)
@@ -560,7 +575,7 @@ void viewer::init_ocl()
 
             s_kernel = new cl::make_kernel<
                 cl::BufferGL&, cl::Buffer&, cl::Buffer&, cl::Buffer&, cl::LocalSpaceArg,
-                cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&
+                cl::LocalSpaceArg, cl_uint, cl::Buffer&, cl_uint, cl::Buffer&, cl_uchar
 #ifdef CLDEBUG
                 , cl_uint2
 #endif // CLDEBUG
