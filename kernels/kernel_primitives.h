@@ -45,15 +45,16 @@ float f_cylinder(global uchar* ptr,
   float3 p2 = (float3)(cyl->point2[0],
                        cyl->point2[1],
                        cyl->point2[2]);
-  float3 ln = normalize(p2 - p1);
-  float3 r = p1 - (*pt);
-  float3 perp = r - ln * dot(ln, r);
-  float result = length(perp) - fabs(cyl->radius);
-  float val = dot(ln, r);
-  result = max(result, dot(ln, r));
-  r = p2 - (*pt);
-  result = max(result, dot(-ln, r));
-  return result;
+  float3 ln = p2 - p1;
+  float halfLen = length(ln) * 0.5f;
+  ln /= halfLen * 2.0f;
+  float3 r = (*pt) - ((p1 + p2) * 0.5f);
+  float y = length(r - ln * dot(ln, r));
+  float x = fabs(dot(ln, r));
+
+  return length((float2)(max(0.0f, x - halfLen),
+                         max(0.0f, y - cyl->radius))) -
+    min(max(0.0f, cyl->radius - y), max(0.0f, halfLen - x));
 }
 
 float f_gyroid(global uchar* ptr,
