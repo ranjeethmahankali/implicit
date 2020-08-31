@@ -37,8 +37,8 @@ static float s_camPhi = CAM_PHI;
 static glm::vec3 s_camTarget = CAM_TARGET;
 static glm::dvec2 s_mousePos = { 0.0, 0.0 };
 
-//static constexpr uint32_t WIN_W = 720, WIN_H = 640;
-static constexpr uint32_t WIN_W = 960, WIN_H = 640;
+//static constexpr uint32_t WIN_W = 960, WIN_H = 640;
+static constexpr uint32_t WIN_W = 1024, WIN_H = 728;
 //static constexpr uint32_t WIN_W = 1, WIN_H = 1;
 static GLFWwindow* s_window;
 static cl::ImageGL s_texture;
@@ -459,7 +459,7 @@ void viewer::render()
                 , mousePos
 #endif // CLDEBUG
             );
-            if (s_repeatPixelKernel)
+            if (s_repeatPixelKernel && s_levelOfDetail > 0)
             {
                 (*s_repeatPixelKernel)(args, s_pBuffer, (cl_uchar)s_levelOfDetail);
             }
