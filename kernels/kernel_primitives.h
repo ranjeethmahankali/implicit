@@ -100,12 +100,12 @@ float f_halfspace(global uchar* ptr,
 }
 
 float f_simple(global uchar* ptr,
-                uchar type,
-                float3* pt
+               uchar type,
+               float3* pt
 #ifdef CLDEBUG
-                , uchar debugFlag
+               , uchar debugFlag
 #endif
-                )
+               )
 {
   switch (type){
   case ENT_TYPE_BOX: return f_box(ptr, pt);
@@ -119,20 +119,39 @@ float f_simple(global uchar* ptr,
 }
 
 float apply_union(float blend_radius,
-                   float a,
-                   float b,
-                   float3* pt
+                  float a,
+                  float b,
+                  float3* pt
 #ifdef CLDEBUG
-                   , uchar debugFlag
+                  , uchar debugFlag
 #endif
-                   )
+                  )
 {
   if (a < blend_radius && b < blend_radius){
-    float2 diff = (float2)(blend_radius - a, blend_radius - b);
-    return blend_radius - length(diff);
+    return blend_radius - length((float2)(blend_radius - a, blend_radius - b));
   }
   else{
     return min(a, b);
+  }
+}
+
+float apply_intersection(float blend_radius,
+                         float a,
+                         float b,
+                         float3* pt
+#ifdef CLDEBUG
+                         , uchar debugFlag
+#endif
+                         )
+{
+  if (blend_radius == 0.0f){
+    return max(a, b);
+  }
+  else if (a > -blend_radius && b > -blend_radius){
+    return length((float2)(a + blend_radius, b + blend_radius)) - blend_radius;
+  }
+  else{
+    return max(a, b);
   }
 }
 
@@ -190,13 +209,24 @@ float apply_op(op_defn op,
 {
   switch(op.type){
   case OP_NONE: return a;
-  case OP_UNION: return apply_union(op.data.blend_radius, a, b, pt
+  case OP_UNION: return apply_union(op.data.blend_radius,
+                                    a, b, pt
 #ifdef CLDEBUG
                                     , debugFlag
 #endif
                                     );
-  case OP_INTERSECTION: return max(a, b);
-  case OP_SUBTRACTION: return max(a, -b);
+  case OP_INTERSECTION: return apply_intersection(op.data.blend_radius,
+                                                  a, b, pt
+#ifdef CLDEBUG
+                                                  , debugFlag
+#endif
+                                                  );
+  case OP_SUBTRACTION: return apply_intersection(op.data.blend_radius,
+                                                  a, -b, pt
+#ifdef CLDEBUG
+                                                  , debugFlag
+#endif
+                                                  );
   case OP_OFFSET: return a - op.data.offset_distance;
   case OP_LINBLEND: return apply_linblend(op.data.lin_blend, a, b, pt
 #ifdef CLDEBUG
