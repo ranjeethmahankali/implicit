@@ -176,7 +176,7 @@ float apply_smoothblend(smooth_blend_data op,
   float lambda = min(1.0f, max(0.0f, dot((*pt) - p1, ln / (modL * modL))));
   lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
   float i = lambda * b + (1.0f - lambda) * a;
-  return (i * modL) / sqrt(modL * modL + (a - b) * (a - b)) * 0.75;
+  return (i * modL) / sqrt(modL * modL + (a - b) * (a - b)) * 0.8;
 }
 
 float apply_op(op_defn op,
@@ -192,7 +192,7 @@ float apply_op(op_defn op,
   case OP_NONE: return a;
   case OP_UNION: return apply_union(op.data.blend_radius, a, b, pt
 #ifdef CLDEBUG
-                                    , uchar debugFlag
+                                    , debugFlag
 #endif
                                     );
   case OP_INTERSECTION: return max(a, b);

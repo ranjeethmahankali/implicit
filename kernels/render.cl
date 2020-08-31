@@ -133,6 +133,7 @@ uint sphere_trace(global uchar* packed,
 #endif
                         ),
                pt, d, norm);
+      norm = normalize(norm);
       found = true;
       break;
     }
@@ -159,9 +160,12 @@ uint sphere_trace(global uchar* packed,
 #endif
                );
   float amb = (d - old) / AMB_STEP;
-  float c = 0.2f + dot(norm, -dir) * (0.4f * amb + 0.4f);
+  float c = 0.2f + dot(norm, -dir) * (0.6f * amb + 0.3f);
 #ifdef CLDEBUG
   if (debugFlag){
+    printf("Gradient: (%.2f, %.2f, %.2f)\n", norm.x, norm.y, norm.z);
+    printf("RayDir:   (%.2f, %.2f, %.2f)\n", -dir.x, -dir.y, -dir.z);
+    printf("Dot: %.2f\n", dot(norm, -dir));
     printf("Floating point color: %.2f\n", c);
   }
 #endif
@@ -239,7 +243,7 @@ kernel void k_trace(global uint* pBuffer, // The pixel buffer
   uint i = coord.x + (coord.y * get_global_size(0));
 
   int iters = 500;
-  float tolerance = 0.001f;
+  float tolerance = 0.00001f;
 
   if (boundDist > 0.0f){
     pBuffer[i] = sphere_trace(packed, offsets, types, valBuf, regBuf,
