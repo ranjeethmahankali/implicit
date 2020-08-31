@@ -6,7 +6,7 @@
 
 #define DX 0.0001f
 #define AMB_STEP 0.05f
-#define STEP_FOS 0.5f
+#define STEP_FOS 0.9f
 #define EPSILON 0.0001
 
 #include "kernel_primitives.h"

@@ -145,17 +145,16 @@ float apply_linblend(lin_blend_data op,
 #endif
                       )
 {
-  float lambda;
-  {
-    float3 p1 = (float3)(op.p1[0],
-                         op.p1[1],
-                         op.p1[2]);
-    float3 ln = (float3)(op.p2[0],
-                         op.p2[1],
-                         op.p2[2]) - p1;
-    lambda = min(1.0f, max(0.0f, dot((*pt) - p1, ln / dot(ln, ln)))); 
-  }
-  return lambda * b + (1.0f - lambda) * a;
+  float3 p1 = (float3)(op.p1[0],
+                       op.p1[1],
+                       op.p1[2]);
+  float3 ln = (float3)(op.p2[0],
+                       op.p2[1],
+                       op.p2[2]) - p1;
+  float modL = length(ln);
+  float lambda = min(1.0f, max(0.0f, dot((*pt) - p1, ln / (modL * modL))));
+  float i = lambda * b + (1.0f - lambda) * a;
+  return (i * modL) / sqrt(modL * modL + (a - b) * (a - b));
 }
 
 float apply_smoothblend(smooth_blend_data op,
@@ -167,18 +166,17 @@ float apply_smoothblend(smooth_blend_data op,
 #endif
                          )
 {
-  float lambda;
-  {
-    float3 p1 = (float3)(op.p1[0],
-                         op.p1[1],
-                         op.p1[2]);
-    float3 ln = (float3)(op.p2[0],
-                         op.p2[1],
-                         op.p2[2]) - p1;
-    lambda = min(1.0f, max(0.0f, dot((*pt) - p1, ln / dot(ln, ln))));
-    lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
-  }
-  return lambda * b + (1.0f - lambda) * a;
+  float3 p1 = (float3)(op.p1[0],
+                       op.p1[1],
+                       op.p1[2]);
+  float3 ln = (float3)(op.p2[0],
+                       op.p2[1],
+                       op.p2[2]) - p1;
+  float modL = length(ln);
+  float lambda = min(1.0f, max(0.0f, dot((*pt) - p1, ln / (modL * modL))));
+  lambda = 1.0f / (1.0f + pow(lambda / (1.0f - lambda), -2.0f));
+  float i = lambda * b + (1.0f - lambda) * a;
+  return (i * modL) / sqrt(modL * modL + (a - b) * (a - b)) * 0.75;
 }
 
 float apply_op(op_defn op,
