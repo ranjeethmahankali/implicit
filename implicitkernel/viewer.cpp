@@ -27,7 +27,7 @@ static constexpr float CAM_THETA = 0.6f;
 static constexpr float CAM_PHI = 0.77f;
 static constexpr glm::vec3 CAM_TARGET = { 0.0f, 0.0f, 0.0f };
 static constexpr float ORBIT_ANG = 0.005f;
-static constexpr uint8_t LOWEST_LOD = 8;
+static constexpr uint8_t LOWEST_LOD = 4;
 
 static bool s_leftDown = false;
 static bool s_rightDown = false;
@@ -179,6 +179,7 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
         s_camPhi += (float)(ypos - s_mousePos[1]) * ORBIT_ANG;
         s_camPhi = std::min(MAX_PHI, std::max(-MAX_PHI, s_camPhi));
         capture_mouse_pos(xpos, ypos);
+        viewer::reset_LOD();
     }
 
     if (s_leftDown)
@@ -197,6 +198,7 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
         s_camTarget += x * diff.x + y * diff.y;
 
         capture_mouse_pos(xpos, ypos);
+        viewer::reset_LOD();
     }
 }
 
@@ -227,6 +229,7 @@ void camera::on_mouse_scroll(GLFWwindow* window, double xOffset, double yOffset)
     static constexpr float zoomDown = 1.0f / zoomUp;
 
     s_camDist *= yOffset > 0 ? zoomDown : zoomUp;
+    viewer::reset_LOD();
 }
 
 void camera::capture_mouse_pos(double xpos, double ypos)
@@ -463,7 +466,7 @@ void viewer::render()
 
 void viewer::update_LOD()
 {
-    if (s_levelOfDetail > 1)
+    if (s_levelOfDetail)
         s_levelOfDetail--;
 }
 
