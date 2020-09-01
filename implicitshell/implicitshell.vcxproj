@@ -151,11 +151,15 @@
   <ItemGroup>
     <ClInclude Include="lua_interface.h" />
     <ClInclude Include="map_macro.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\implicitkernel\implicitkernel.vcxproj">
       <Project>{a97b423b-47c4-48af-abfc-2a0f0f627ba4}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="implicitshell.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
