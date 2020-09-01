@@ -7,7 +7,6 @@
 
 #include <assert.h>
 #include "lua_interface.h"
-#include "viewer.h"
 
 static void cmd_loop()
 {
