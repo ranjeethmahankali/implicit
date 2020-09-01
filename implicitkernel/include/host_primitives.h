@@ -9,7 +9,7 @@ extern "C"
 #define PACKED
 
 #pragma pack(push, 1)
-#include "primitives.h"
+#include "primitives.clh"
 #pragma pack(pop)
 
 #undef FLT_TYPE
@@ -17,7 +17,7 @@ extern "C"
 #undef UINT8_TYPE
 };
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <optional>
 #include <iostream>
 #include <algorithm>

@@ -4,7 +4,7 @@
 
 #define PACKED __attribute__((packed))
 
-#include "primitives.h"
+#include "primitives.clh"
 
 #undef UINT_TYPE
 #undef FLT_TYPE

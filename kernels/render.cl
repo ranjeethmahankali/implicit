@@ -11,7 +11,7 @@
 #define NUM_ITERS 500
 #define TOLERANCE 0.00001f
 
-#include "kernel_primitives.h"
+#include "kernel_primitives.clh"
 
 #define GRADIENT(func, point, val, grad) {                  \
     point.x += EPSILON; grad.x = (func - val) / EPSILON; point.x -= EPSILON;  \
