@@ -17,7 +17,7 @@ extern "C"
 #undef UINT8_TYPE
 };
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <optional>
 #include <iostream>
 #include <algorithm>

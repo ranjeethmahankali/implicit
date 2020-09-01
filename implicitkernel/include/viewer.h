@@ -1,5 +1,4 @@
 #pragma once
-#include <glm.hpp>
 #include <iostream>
 #include "host_primitives.h"
 #define NOMINMAX
