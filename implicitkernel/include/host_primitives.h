@@ -64,7 +64,14 @@ namespace entities
          */
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
 
-        virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const = 0;
+        /**
+         * \brief Copies the render data into the given destination buffers.
+         * \param bytes The render data will be written to this buffer.
+         * \param offsets The byte offsets of the simple entities (in the above buffer).
+         * \param types The types of simple entities.
+         * \param steps The csg steps to be performed on the simple entities.
+         */
+        void copy_render_data(uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps) const;
 
         /**
          * \brief Copies the render data into the given destination buffers.
@@ -81,7 +88,7 @@ namespace entities
             size_t& entityIndex, size_t& currentOffset, uint32_t reg,
             std::unordered_map<entity*, uint32_t>& regMap) const = 0;
 
-        void copy_render_data(uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps) const;
+        virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const = 0;
 
         /**
          * \brief Returns a reference to the copy of the given entity.
