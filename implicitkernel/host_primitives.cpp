@@ -43,13 +43,20 @@ void entities::simp_entity::render_data_size(size_t& nBytes, size_t& nEntities, 
 
 void entities::simp_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps, size_t& entityIndex,
-    size_t& currentOffset, std::optional<uint32_t> reg) const
+    size_t& currentOffset, std::optional<uint32_t> reg,
+    std::optional<std::unordered_map<entity*, uint32_t>> regMap) const
 {
-    *(offsets++) = (uint32_t)currentOffset;
-    currentOffset += num_render_bytes();
-    write_render_bytes(bytes);
-    *(types++) = type();
-    entityIndex++;
+    if (!regMap.has_value()) regMap.emplace();
+    auto match = regMap->find((entity*)this);
+    if (match == regMap->end())
+    {
+        *(offsets++) = (uint32_t)currentOffset;
+        currentOffset += num_render_bytes();
+        write_render_bytes(bytes);
+        *(types++) = type();
+        regMap->emplace((entity*)this, (uint32_t)entityIndex);
+        entityIndex++;
+    }
 }
 
 entities::comp_entity::comp_entity(std::shared_ptr<entity> l, std::shared_ptr<entity> r, op_defn op)
@@ -81,11 +88,15 @@ void entities::comp_entity::render_data_size(size_t& nBytes, size_t& nEntities, 
 
 void entities::comp_entity::copy_render_data(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-    size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg) const
+    size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg,
+    std::optional<std::unordered_map<entity*, uint32_t>> regMap) const
 {
     uint32_t regVal = reg.value_or(0);
+    if (!regMap.has_value()) regMap.emplace();
     bool lcsg = (left) ? !left->simple() : false;
     bool rcsg = (right) ? !right->simple() : false;
+    auto lmatch = lcsg ? regMap->end() : regMap->find(left.get());
+    auto rmatch = rcsg ? regMap->end() : regMap->find(right.get());
 
     if (regVal >= MAX_ENTITY_COUNT - 2)
     {
@@ -93,12 +104,22 @@ void entities::comp_entity::copy_render_data(
         exit(1);
     }
 
-    uint32_t lsrc = lcsg ? regVal : (uint32_t)entityIndex;
+    uint32_t lsrc =
+        lcsg ? regVal :
+        lmatch == regMap->end() ? (uint32_t)entityIndex :
+        lmatch->second;
+
     if (left)
-        left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal);
-    uint32_t rsrc = (rcsg && lcsg) ? regVal + 1 : (rcsg ? regVal : (uint32_t)entityIndex);
+        left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal, regMap);
+
+    uint32_t rsrc =
+        (rcsg && lcsg) ? regVal + 1 :
+        rcsg ? regVal :
+        rmatch == regMap->end() ? (uint32_t)entityIndex :
+        rmatch->second;
+
     if (right)
-        right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal);
+        right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal, regMap);
 
     *(steps++) = {
         op,

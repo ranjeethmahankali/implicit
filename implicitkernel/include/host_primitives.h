@@ -76,7 +76,8 @@ namespace entities
          */
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const = 0;
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt,
+            std::optional<std::unordered_map<entity*, uint32_t>> regMap = std::nullopt) const = 0;
 
         /**
          * \brief Returns a reference to the copy of the given entity.
@@ -121,7 +122,8 @@ namespace entities
         virtual void render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt,
+            std::optional<std::unordered_map<entity*, uint32_t>> regMap = std::nullopt) const;
 
         comp_entity(const comp_entity&) = delete;
         const comp_entity& operator=(const comp_entity&) = delete;
@@ -245,7 +247,8 @@ namespace entities
         virtual void write_render_bytes(uint8_t*& bytes) const = 0;
         virtual void copy_render_data(
             uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt) const;
+            size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg = std::nullopt,
+            std::optional<std::unordered_map<entity*, uint32_t>> regMap = std::nullopt) const;
     };
 
     /**
