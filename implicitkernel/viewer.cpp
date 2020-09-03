@@ -744,8 +744,7 @@ void viewer::show_entity(entities::ent_ref entity)
         uint32_t* optr = offsets.data();
         uint8_t* tptr = types.data();
         op_step* sptr = steps.data();
-        size_t ei = 0, co = 0;
-        entity->copy_render_data(bptr, optr, tptr, sptr, ei, co);
+        entity->copy_render_data(bptr, optr, tptr, sptr);
     }
 
     viewer::add_render_data(bytes.data(), nBytes, types.data(), offsets.data(), nEntities, steps.data(), nSteps);

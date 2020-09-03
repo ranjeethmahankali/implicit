@@ -35,26 +35,25 @@ bool entities::simp_entity::simple() const
     return true;
 }
 
-void entities::simp_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
+void entities::simp_entity::render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const
 {
     nBytes += num_render_bytes();
-    nEntities++;
+    simpleEntities.insert((entity*)this);
 }
 
-void entities::simp_entity::copy_render_data(
+void entities::simp_entity::copy_render_data_internal(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps, size_t& entityIndex,
-    size_t& currentOffset, std::optional<uint32_t> reg,
-    std::optional<std::unordered_map<entity*, uint32_t>> regMap) const
+    size_t& currentOffset, uint32_t reg,
+    std::unordered_map<entity*, uint32_t>& regMap) const
 {
-    if (!regMap.has_value()) regMap.emplace();
-    auto match = regMap->find((entity*)this);
-    if (match == regMap->end())
+    auto match = regMap.find((entity*)this);
+    if (match == regMap.end())
     {
         *(offsets++) = (uint32_t)currentOffset;
         currentOffset += num_render_bytes();
         write_render_bytes(bytes);
         *(types++) = type();
-        regMap->emplace((entity*)this, (uint32_t)entityIndex);
+        regMap.emplace((entity*)this, (uint32_t)entityIndex);
         entityIndex++;
     }
 }
@@ -79,24 +78,22 @@ uint8_t entities::comp_entity::type() const
     return ENT_TYPE_CSG;
 }
 
-void entities::comp_entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
+void entities::comp_entity::render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entities::entity*>& simpleEntities) const
 {
-    if (left) left->render_data_size(nBytes, nEntities, nSteps);
-    if (right) right->render_data_size(nBytes, nEntities, nSteps);
+    if (left) left->render_data_size_internal(nBytes, nSteps, simpleEntities);
+    if (right) right->render_data_size_internal(nBytes, nSteps, simpleEntities);
     nSteps++;
 }
 
-void entities::comp_entity::copy_render_data(
+void entities::comp_entity::copy_render_data_internal(
     uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
-    size_t& entityIndex, size_t& currentOffset, std::optional<uint32_t> reg,
-    std::optional<std::unordered_map<entity*, uint32_t>> regMap) const
+    size_t& entityIndex, size_t& currentOffset, uint32_t regVal,
+    std::unordered_map<entity*, uint32_t>& regMap) const
 {
-    uint32_t regVal = reg.value_or(0);
-    if (!regMap.has_value()) regMap.emplace();
     bool lcsg = (left) ? !left->simple() : false;
     bool rcsg = (right) ? !right->simple() : false;
-    auto lmatch = lcsg ? regMap->end() : regMap->find(left.get());
-    auto rmatch = rcsg ? regMap->end() : regMap->find(right.get());
+    auto lmatch = lcsg ? regMap.end() : regMap.find(left.get());
+    auto rmatch = rcsg ? regMap.end() : regMap.find(right.get());
 
     if (regVal >= MAX_ENTITY_COUNT - 2)
     {
@@ -106,20 +103,20 @@ void entities::comp_entity::copy_render_data(
 
     uint32_t lsrc =
         lcsg ? regVal :
-        lmatch == regMap->end() ? (uint32_t)entityIndex :
+        lmatch == regMap.end() ? (uint32_t)entityIndex :
         lmatch->second;
 
     if (left)
-        left->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, regVal, regMap);
+        left->copy_render_data_internal(bytes, offsets, types, steps, entityIndex, currentOffset, regVal, regMap);
 
     uint32_t rsrc =
         (rcsg && lcsg) ? regVal + 1 :
         rcsg ? regVal :
-        rmatch == regMap->end() ? (uint32_t)entityIndex :
+        rmatch == regMap.end() ? (uint32_t)entityIndex :
         rmatch->second;
 
     if (right)
-        right->copy_render_data(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal, regMap);
+        right->copy_render_data_internal(bytes, offsets, types, steps, entityIndex, currentOffset, (lcsg && rcsg) ? (regVal + 1) : regVal, regMap);
 
     *(steps++) = {
         op,
@@ -244,4 +241,19 @@ void entities::halfspace::write_render_bytes(uint8_t*& bytes) const
     i_halfspace ient = { {origin.x, origin.y, origin.z} , {normal.x, normal.y, normal.z} };
     std::memcpy(bytes, &ient, sizeof(ient));
     bytes += sizeof(ient);
+}
+
+void entities::entity::render_data_size(size_t& nBytes, size_t& nEntities, size_t& nSteps) const
+{
+    std::unordered_set<entity*> simples;
+    render_data_size_internal(nBytes, nSteps, simples);
+    nEntities = simples.size();
+}
+
+void entities::entity::copy_render_data(uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps) const
+{
+    size_t entityIndex = 0;
+    size_t currentOffset = 0;
+    std::unordered_map<entity*, uint32_t> regMap;
+    copy_render_data_internal(bytes, offsets, types, steps, entityIndex, currentOffset, 0, regMap);
 }
