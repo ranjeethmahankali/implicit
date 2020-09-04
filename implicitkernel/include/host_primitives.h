@@ -48,7 +48,7 @@ namespace entities
          * \brief The type of the entity known to the OpenCL code.
          * \return uint8_t The type represented as an integer.
          */
-        virtual uint8_t type() const = 0;
+        virtual uint32_t type() const = 0;
         /**
          * \brief Gets a value indicating whether this entity is simple.
          * \return true If this entity is simple.
@@ -71,7 +71,7 @@ namespace entities
          * \param types The types of simple entities.
          * \param steps The csg steps to be performed on the simple entities.
          */
-        void copy_render_data(uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps) const;
+        void copy_render_data(uint8_t*& bytes, uint32_t*& offsets, uint32_t*& types, op_step*& steps) const;
 
         /**
          * \brief Copies the render data into the given destination buffers.
@@ -84,11 +84,13 @@ namespace entities
          * \param reg For internal use.
          */
         virtual void copy_render_data_internal(
-            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            uint8_t*& bytes, uint32_t*& offsets, uint32_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, uint32_t reg,
             std::unordered_map<entity*, uint32_t>& regMap) const = 0;
 
         virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const = 0;
+
+        virtual ent_ref clone() const = 0;
 
         /**
          * \brief Returns a reference to the copy of the given entity.
@@ -100,6 +102,8 @@ namespace entities
         {
             return ent_ref(dynamic_cast<entity*>(new T(simple)));
         };
+
+        virtual ent_ref make_transformed(const glm::mat4& transform) const;
     };
 
     /**
@@ -129,12 +133,13 @@ namespace entities
 
     public:
         virtual bool simple() const;
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
         virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const;
         virtual void copy_render_data_internal(
-            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            uint8_t*& bytes, uint32_t*& offsets, uint32_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, uint32_t reg,
             std::unordered_map<entity*, uint32_t>& regMap) const;
+        virtual ent_ref clone() const;
 
         comp_entity(const comp_entity&) = delete;
         const comp_entity& operator=(const comp_entity&) = delete;
@@ -257,9 +262,26 @@ namespace entities
         virtual size_t num_render_bytes() const = 0;
         virtual void write_render_bytes(uint8_t*& bytes) const = 0;
         virtual void copy_render_data_internal(
-            uint8_t*& bytes, uint32_t*& offsets, uint8_t*& types, op_step*& steps,
+            uint8_t*& bytes, uint32_t*& offsets, uint32_t*& types, op_step*& steps,
             size_t& entityIndex, size_t& currentOffset, uint32_t reg,
             std::unordered_map<entity*, uint32_t>& regMap) const;
+    };
+
+    struct transformed_entity : public entity
+    {
+        ent_ref operand;
+        glm::mat4 inv_transform;
+
+    protected:
+        virtual bool simple() const;
+        virtual uint32_t type() const;
+        virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const;
+        virtual void copy_render_data_internal(
+            uint8_t*& bytes, uint32_t*& offsets, uint32_t*& types, op_step*& steps,
+            size_t& entityIndex, size_t& currentOffset, uint32_t reg,
+            std::unordered_map<entity*, uint32_t>& regMap) const;
+        virtual ent_ref clone() const;
+        virtual ent_ref make_transformed(const glm::mat4& transform) const;
     };
 
     /**
@@ -280,7 +302,8 @@ namespace entities
          */
         box3(float xcenter, float ycenter, float zcenter, float xhalf, float yhalf, float zhalf);
 
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
@@ -301,7 +324,8 @@ namespace entities
          */
         sphere3(float xcenter, float ycenter, float zcenter, float radius);
         
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
@@ -326,7 +350,8 @@ namespace entities
          */
         cylinder3(float p1x, float p1y, float p1z, float p2x, float p2y, float p2z, float radius);
 
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
@@ -345,7 +370,8 @@ namespace entities
          */
         gyroid(float scale, float thickness);
         
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
@@ -364,7 +390,8 @@ namespace entities
          */
         schwarz(float scale, float thickness);
 
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };
@@ -384,7 +411,8 @@ namespace entities
          */
         halfspace(glm::vec3 origin, glm::vec3 normal);
 
-        virtual uint8_t type() const;
+        virtual uint32_t type() const;
+        virtual ent_ref clone() const;
         virtual size_t num_render_bytes() const;
         virtual void write_render_bytes(uint8_t*& bytes) const;
     };

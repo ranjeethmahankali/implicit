@@ -710,7 +710,7 @@ void write_buf(cl::Buffer& buffer, T* data, size_t size)
     s_queue.enqueueWriteBuffer(buffer, CL_TRUE, 0, size * sizeof(T), data);
 };
 
-void viewer::add_render_data(uint8_t* bytes, size_t nBytes, uint8_t* types, uint32_t* offsets, size_t nEntities, op_step* steps, size_t nSteps)
+void viewer::add_render_data(uint8_t* bytes, size_t nBytes, uint32_t* types, uint32_t* offsets, size_t nEntities, op_step* steps, size_t nSteps)
 {
     try
     {
@@ -735,14 +735,14 @@ void viewer::show_entity(entities::ent_ref entity)
     entity->render_data_size(nBytes, nEntities, nSteps);
     std::vector<uint8_t> bytes(nBytes);
     std::vector<uint32_t> offsets(nEntities);
-    std::vector<uint8_t> types(nEntities);
+    std::vector<uint32_t> types(nEntities);
     std::vector<op_step> steps(nSteps);
 
     // Copy the render data into these buffers.
     {
         uint8_t* bptr = bytes.data();
         uint32_t* optr = offsets.data();
-        uint8_t* tptr = types.data();
+        uint32_t* tptr = types.data();
         op_step* sptr = steps.data();
         entity->copy_render_data(bptr, optr, tptr, sptr);
     }
