@@ -161,6 +161,9 @@
   <ItemGroup>
     <ResourceCompile Include="implicitshell.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\kernels\primitives.clh" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

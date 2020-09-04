@@ -1,13 +1,16 @@
 #define SRC_REG 1
 #define SRC_VAL 2
 
-#define ENT_TYPE_CSG                    0
-#define ENT_TYPE_BOX                    1
-#define ENT_TYPE_SPHERE                 2
-#define ENT_TYPE_CYLINDER               3
-#define ENT_TYPE_HALFSPACE              4
-#define ENT_TYPE_GYROID                 5
-#define ENT_TYPE_SCHWARZ                6
+#define ENT_MASK_TYPE                   0x000000ff
+#define ENT_MASK_TRANSFORMED            0x01000000
+
+#define ENT_TYPE_CSG                    0x00000000
+#define ENT_TYPE_BOX                    0x00000001
+#define ENT_TYPE_SPHERE                 0x00000002
+#define ENT_TYPE_CYLINDER               0x00000003
+#define ENT_TYPE_HALFSPACE              0x00000004
+#define ENT_TYPE_GYROID                 0x00000005
+#define ENT_TYPE_SCHWARZ                0x00000006
 
 typedef struct PACKED
 {

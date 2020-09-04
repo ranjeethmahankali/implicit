@@ -38,4 +38,9 @@
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\kernels\primitives.clh">
+      <Filter>Header Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>
