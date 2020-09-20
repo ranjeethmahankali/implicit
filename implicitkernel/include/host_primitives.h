@@ -34,7 +34,7 @@ namespace entities
      * This is just a shared pointer.
      */
     typedef std::shared_ptr<entity> ent_ref;
-    
+
     /**
      * \brief Base type for all entities.
      */
@@ -42,6 +42,7 @@ namespace entities
     {
     protected:
         entity() = default;
+        virtual ~entity() = default;
 
     public:
         /**
@@ -98,7 +99,8 @@ namespace entities
          */
         template <typename T> static ent_ref wrap_simple(const T& simple)
         {
-            return ent_ref(dynamic_cast<entity*>(new T(simple)));
+            ent_ref ref = std::make_shared<T>(simple);
+            return ref;
         };
     };
 
@@ -251,6 +253,7 @@ namespace entities
         const simp_entity& operator=(const simp_entity&) = delete;
     protected:
         simp_entity() = default;
+        virtual ~simp_entity() = default;
 
         virtual bool simple() const;
         virtual void render_data_size_internal(size_t& nBytes, size_t& nSteps, std::unordered_set<entity*>& simpleEntities) const;
