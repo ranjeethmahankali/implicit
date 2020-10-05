@@ -1,5 +1,5 @@
 #include <fstream>
-#include "lua_interface.h"
+#include "implicit_lua.h"
 #include "map_macro.h"
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
 
@@ -15,7 +15,7 @@
 bool s_shouldExit = false;
 
 template <>
-float lua_interface::read_lua<float>(lua_State * L, int i)
+float implicit_lua::read_lua<float>(lua_State* L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -23,7 +23,7 @@ float lua_interface::read_lua<float>(lua_State * L, int i)
 }
 
 template <>
-double lua_interface::read_lua<double>(lua_State * L, int i)
+double implicit_lua::read_lua<double>(lua_State* L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -31,7 +31,7 @@ double lua_interface::read_lua<double>(lua_State * L, int i)
 }
 
 template <>
-int lua_interface::read_lua<int>(lua_State * L, int i)
+int implicit_lua::read_lua<int>(lua_State* L, int i)
 {
     if (!lua_isnumber(L, i))
         luathrow(L, "Cannot convert to a number");
@@ -39,7 +39,7 @@ int lua_interface::read_lua<int>(lua_State * L, int i)
 }
 
 template <>
-std::string lua_interface::read_lua<std::string>(lua_State * L, int i)
+std::string implicit_lua::read_lua<std::string>(lua_State* L, int i)
 {
     if (!lua_isstring(L, i))
         luathrow(L, "Cannot readstring");
@@ -48,7 +48,7 @@ std::string lua_interface::read_lua<std::string>(lua_State * L, int i)
 }
 
 template <>
-entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State * L, int i)
+entities::ent_ref implicit_lua::read_lua<entities::ent_ref>(lua_State* L, int i)
 {
     using namespace entities;
     if (!lua_isuserdata(L, i))
@@ -58,7 +58,7 @@ entities::ent_ref lua_interface::read_lua<entities::ent_ref>(lua_State * L, int 
 }
 
 template <>
-void lua_interface::push_lua<entities::ent_ref>(lua_State * L, const entities::ent_ref & ref)
+void implicit_lua::push_lua<entities::ent_ref>(lua_State* L, const entities::ent_ref& ref)
 {
     using namespace entities;
     auto udata = (ent_ref*)lua_newuserdata(L, sizeof(ent_ref)); // Allocate space in lua's memory.
@@ -72,7 +72,7 @@ void lua_interface::push_lua<entities::ent_ref>(lua_State * L, const entities::e
     viewer::show_entity(ref);
 }
 
-void lua_interface::init_lua()
+void implicit_lua::init_lua()
 {
     if (s_luaState)
         return;
@@ -81,13 +81,13 @@ void lua_interface::init_lua()
     init_functions();
 }
 
-void lua_interface::stop()
+void implicit_lua::stop()
 {
     lua_State* L = state();
     lua_close(L);
 }
 
-int lua_interface::delete_entity(lua_State* L)
+int implicit_lua::delete_entity(lua_State* L)
 {
     using namespace entities;
     //std::cout << "Deleting entity in lua ...." << std::endl;
@@ -99,7 +99,7 @@ int lua_interface::delete_entity(lua_State* L)
     return 0;
 }
 
-void lua_interface::run_cmd(const std::string& line)
+void implicit_lua::run_cmd(const std::string& line)
 {
     lua_State* L = state();
     int ret = luaL_dostring(L, line.c_str());
@@ -109,17 +109,17 @@ void lua_interface::run_cmd(const std::string& line)
     }
 }
 
-lua_State* lua_interface::state()
+lua_State* implicit_lua::state()
 {
     return s_luaState;
 }
 
-bool lua_interface::should_exit()
+bool implicit_lua::should_exit()
 {
     return s_shouldExit;
 }
 
-void lua_interface::luathrow(lua_State* L, const std::string& error)
+void implicit_lua::luathrow(lua_State* L, const std::string& error)
 {
     std::cout << std::endl;
     lua_pushstring(L, error.c_str());
@@ -127,7 +127,7 @@ void lua_interface::luathrow(lua_State* L, const std::string& error)
     std::cout << std::endl << std::endl;
 }
 
-lua_interface::func_info::func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args) :
+implicit_lua::func_info::func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args) :
     type(t),
     name(n),
     desc(d),
@@ -135,7 +135,7 @@ lua_interface::func_info::func_info(const std::string& t, const std::string& n, 
 {
 }
 
-void lua_interface::func_info::show_help(bool detailed) const
+void implicit_lua::func_info::show_help(bool detailed) const
 {
     std::cout << std::endl;
     std::cout << type << " " << name << "(...)" << "\n\t" << desc << std::endl;
@@ -150,7 +150,7 @@ void lua_interface::func_info::show_help(bool detailed) const
     }
 }
 
-static std::unordered_map<std::string, lua_interface::func_info> s_functionInfos;
+static std::unordered_map<std::string, implicit_lua::func_info> s_functionInfos;
 
 #define _LUA_ARG_TYPE(type, name, desc) type
 #define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE##arg_tuple
@@ -166,12 +166,12 @@ static std::unordered_map<std::string, lua_interface::func_info> s_functionInfos
 #endif
 
 #define LUA_FUNC(TReturn, FuncName, HasArgs, FuncDesc, ...) \
-namespace lua_interface{\
+namespace implicit_lua{\
 /*Declare the function without definition.*/\
 TReturn lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__));\
 /*Define the C function that calls the above function with the correct parameters read from the lua state.*/\
 int lua_c_fn_##FuncName(lua_State* L){\
-return lua_interface::lua_func<TReturn COND_COMMA(HasArgs) MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
+return implicit_lua::lua_func<TReturn COND_COMMA(HasArgs) MAP_LIST_COND(HasArgs, LUA_ARG_TYPE, __VA_ARGS__)>::call_func(lua_fn_##FuncName, #FuncName, L);\
 }\
 /*Define the function that registers this the above lua C function and all the help information.*/\
 void lua_init_fn_##FuncName(lua_State* L){\
@@ -180,7 +180,7 @@ s_functionInfos.emplace(#FuncName, func_info(#TReturn, #FuncName, FuncDesc, args
 lua_register(L, #FuncName, lua_c_fn_##FuncName);}\
 }\
 /*The sigature of the function declared at the beginning, so that the user of the macro can write the definition.*/\
-TReturn lua_interface::lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_DECL, __VA_ARGS__))
+TReturn implicit_lua::lua_fn_##FuncName(MAP_LIST_COND(HasArgs, LUA_ARG_DECL, __VA_ARGS__))
 
 #define INIT_LUA_FUNC(lstate, name) lua_init_fn_##name(lstate);
 
@@ -444,7 +444,7 @@ LUA_FUNC(void, adaptive_rendermode, true, "Sets the level of detail for the adap
     viewer::adaptive_rendermode((uint8_t)lod);
 }
 
-void lua_interface::init_functions()
+void implicit_lua::init_functions()
 {
     lua_State* L = state();
     INIT_LUA_FUNC(L, quit);

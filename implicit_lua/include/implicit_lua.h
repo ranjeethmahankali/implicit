@@ -11,7 +11,7 @@ extern "C"
 
 static lua_State* s_luaState = nullptr;
 
-namespace lua_interface
+namespace implicit_lua
 {
     void init_lua();
     void stop();
@@ -46,7 +46,7 @@ namespace lua_interface
                 std::cerr << "The function '" << functionName << "' expects " << sizeof...(TArgs) << " arguments.\n";
                 luathrow(L, "Incorrect number of arguments");
             }
-            
+
             try
             {
                 if constexpr (std::is_void<TReturn>::value)
@@ -87,7 +87,7 @@ namespace lua_interface
         std::string name;
         std::string desc;
         std::vector<member_info> arguments;
-        
+
         func_info(const std::string& t, const std::string& n, const std::string& d, const std::vector<member_info>& args);
 
         void show_help(bool detailed) const;

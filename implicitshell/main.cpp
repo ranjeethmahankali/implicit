@@ -6,7 +6,7 @@
 #include <condition_variable>
 
 #include <assert.h>
-#include "lua_interface.h"
+#include "implicit_lua.h"
 
 static void cmd_loop()
 {
@@ -15,10 +15,10 @@ static void cmd_loop()
     while (running)
     {
         std::cout << ARROWS;
-        running = !viewer::window_should_close() && !lua_interface::should_exit() && std::getline(std::cin, input);
+        running = !viewer::window_should_close() && !implicit_lua::should_exit() && std::getline(std::cin, input);
         if (input.empty())
             continue;
-        lua_interface::run_cmd(input);
+        implicit_lua::run_cmd(input);
     }
     viewer::close_window();
 };
@@ -32,20 +32,20 @@ int main(int argc, char** argv)
     std::cout << "\tAllocating device buffers\n";
     viewer::init_buffers();
     std::cout << "Initializing Lua bindings...\n";
-    lua_interface::init_lua();
+    implicit_lua::init_lua();
     std::cout << "=====================================\n\n";
 
     if (argc == 2)
     {
         std::string path(argv[1]);
         std::string command = "load(\"" + path + "\")";
-        lua_interface::run_cmd(command);
+        implicit_lua::run_cmd(command);
     }
     std::thread cmdThread(cmd_loop);
     viewer::render_loop();
 
     cmdThread.join();
     viewer::stop();
-    lua_interface::stop();
+    implicit_lua::stop();
     return 0;
 }
