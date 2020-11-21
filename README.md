@@ -57,14 +57,20 @@ function.
 Its a standard Visual Studio solution.
 Some of the dependencies are included in the repo with a props file
 
-* glfw, glew (opengl.props)
 * LightOCLSDK (opencl.props)
 
 And you should install the other dependencies using vcpkg
 
-* glm
-* lua
-* boost-gil
+```
+vcpkg install glm:x64-windows-static
+vcpkg install lua:x64-windows-static
+vcpkg install boost-gil:x64-windows-static
+vcpkg install boost-algorithm:x64-windows-static
+vcpkg install glfw3:x64-windows-static
+vcpkg install glew:x64-windows-static
+
+vcpkg integrate install
+```
 
 You should be able to build the solution after installing the above dependencies
 
