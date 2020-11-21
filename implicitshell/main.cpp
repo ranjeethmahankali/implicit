@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <vector>
 #include <algorithm>
 #include <iostream>
