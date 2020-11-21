@@ -42,7 +42,6 @@
     <Import Project="..\opencl.props" />
     <Import Project="..\opengl.props" />
     <Import Project="..\implicitkernel.props" />
-    <Import Project="..\lua535.props" />
     <Import Project="..\implicit_lua.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -50,7 +49,6 @@
     <Import Project="..\opencl.props" />
     <Import Project="..\opengl.props" />
     <Import Project="..\implicitkernel.props" />
-    <Import Project="..\lua535.props" />
     <Import Project="..\implicit_lua.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
