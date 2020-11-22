@@ -1,5 +1,4 @@
 #include "kernel_sources.h"
-#define NOMINMAX
 #include <Shlwapi.h>
 
 static constexpr const char* renderKernelName = "render.cl";

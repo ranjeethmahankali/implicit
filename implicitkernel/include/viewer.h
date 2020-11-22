@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include "host_primitives.h"
-#define NOMINMAX
 
 /*glew.h, cl.hpp and glfw3.h should be included in this specific order to not get dumb warnings.*/
 #include <GL/glew.h>
