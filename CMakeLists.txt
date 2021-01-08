@@ -54,6 +54,11 @@ target_link_libraries(implicitshell PRIVATE
     implicitkernel
     implicitlua)
 
+# Delete NVIDIA compiled opencl cache
+add_custom_command(TARGET implicitshell PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+    $ENV{APPDATA}/NVIDIA/ComputeCache)
+
 # Copy all the kernel sources to be compiled at runtime.
 list(APPEND KERNEL_FILE_DIRS
     ${CMAKE_SOURCE_DIR}/src/kernels
