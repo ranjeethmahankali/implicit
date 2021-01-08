@@ -37,6 +37,7 @@ int main(int argc, char** argv)
     if (argc == 2)
     {
         std::string path(argv[1]);
+        std::replace(path.begin(), path.end(), '\\', '/');
         std::string command = "load(\"" + path + "\")";
         implicit_lua::run_cmd(command);
     }
