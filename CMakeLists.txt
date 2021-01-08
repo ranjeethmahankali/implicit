@@ -53,3 +53,14 @@ add_executable(implicitshell ${IMPLICITSHELL_SRC})
 target_link_libraries(implicitshell PRIVATE
     implicitkernel
     implicitlua)
+
+# Copy all the kernel sources to be compiled at runtime.
+list(APPEND KERNEL_FILE_DIRS
+    ${CMAKE_SOURCE_DIR}/src/kernels
+    ${CMAKE_SOURCE_DIR}/include/kernels)
+
+foreach(KERNEL_DIR IN LISTS KERNEL_FILE_DIRS)
+    add_custom_command(TARGET implicitshell POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${KERNEL_DIR} $<TARGET_FILE_DIR:implicitshell>)
+endforeach()
