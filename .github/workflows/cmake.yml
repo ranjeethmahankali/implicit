@@ -17,6 +17,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        lfs: 'true'
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
