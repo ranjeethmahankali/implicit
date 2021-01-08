@@ -1,6 +1,6 @@
 #include <fstream>
-#include "implicit_lua.h"
-#include "map_macro.h"
+#include <implicitlua/luabindings.h>
+#include <implicitlua/map_macro.h>
 #define LUA_REG_FUNC(lstate, name) lua_register(lstate, #name, name)
 
 // Function name macro for logging purposes.

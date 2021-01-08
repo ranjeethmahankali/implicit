@@ -1,4 +1,4 @@
-#include "host_primitives.h"
+#include <implicitkernel/host_primitives.h>
 #include <vector>
 #include <algorithm>
 #include <sstream>

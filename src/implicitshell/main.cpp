@@ -5,7 +5,7 @@
 #include <condition_variable>
 
 #include <assert.h>
-#include "implicit_lua.h"
+#include <implicitlua/luabindings.h>
 
 static void cmd_loop()
 {

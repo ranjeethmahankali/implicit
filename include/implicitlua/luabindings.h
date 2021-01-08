@@ -7,7 +7,7 @@ extern "C"
 #include "lauxlib.h"
 #include "lualib.h"
 };
-#include "viewer.h"
+#include <implicitkernel/viewer.h>
 
 static lua_State* s_luaState = nullptr;
 

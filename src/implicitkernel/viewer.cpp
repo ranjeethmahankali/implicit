@@ -2,10 +2,10 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
-#include "kernel_sources.h"
-#include "viewer.h"
+#include <implicitkernel/kernel_sources.h>
+#include <implicitkernel/viewer.h>
 #pragma warning(push)
-#pragma warning(disable: 4244)
+#pragma warning(disable: 4244 4996)
 #include <boost/gil/image.hpp>
 #include <boost/gil/typedefs.hpp>
 #include <boost/gil/extension/io/bmp.hpp>

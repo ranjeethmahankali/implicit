@@ -9,7 +9,7 @@ extern "C"
 #define PACKED
 
 #pragma pack(push, 1)
-#include "primitives.clh"
+#include <kernels/primitives.clh>
 #pragma pack(pop)
 
 #undef FLT_TYPE

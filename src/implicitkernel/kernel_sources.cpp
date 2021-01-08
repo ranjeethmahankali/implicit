@@ -1,4 +1,4 @@
-#include "kernel_sources.h"
+#include <implicitkernel/kernel_sources.h>
 #include <Shlwapi.h>
 
 static constexpr const char* renderKernelName = "render.cl";
