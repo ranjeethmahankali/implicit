@@ -8,12 +8,6 @@ I started with a simple command line application with a 3d viewer to
 visualize the results of the commands being typed. Later I'd like to
 try and make plugins to integrate this with other modeling software.
 
-## Architecture
-
-The CLI application is later renamed to `implicitshell`.
-
-![Architecture](architecture.png)
-
 #### OpenCL and OpenGL
 
 The OpenCL code performs raytracing on the implicit geometry created
@@ -54,12 +48,7 @@ function.
 
 ## Building the Solution ##
 
-Its a standard Visual Studio solution.
-Some of the dependencies are included in the repo with a props file
-
-* LightOCLSDK (opencl.props)
-
-And you should install the other dependencies using vcpkg
+You should first install the following dependencies using vcpkg
 
 ```
 vcpkg install glm:x64-windows-static
@@ -72,7 +61,14 @@ vcpkg install glew:x64-windows-static
 vcpkg integrate install
 ```
 
-You should be able to build the solution after installing the above dependencies
+The environment variable `VCPKG_PATH` must be set to the root directory of vcpkg.
+Then build the project using cmake:
+
+```
+cmake -S . -B build/
+cmake --build build/ --config Release
+```
+The binaries should be built to `build/Release/` directory.
 
 ## Using the application ##
 
@@ -139,3 +135,7 @@ just a few commands.
 ```
 
 ![Example](example.png)
+
+## P.S.
+
+I decided to pause the work on this repo and start working on [implicitv2](https://github.com/themachine0094/implicitv2) instead. In v2, instead of doing my own raytracing and building my own datastructures from scratch, I want to make use of [OpenVDB](https://www.openvdb.org/) where it makes sense.
