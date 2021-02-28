@@ -6,9 +6,9 @@
 // Function name macro for logging purposes.
 #ifndef __FUNCTION_NAME__
 #ifdef _MSC_VER //WINDOWS
-#define __FUNCTION_NAME__   __FUNCTION__
+#define __FUNCTION_NAME__ __FUNCTION__
 #else
-#error Define the function name macro for non windows platform.
+#define __FUNCTION_NAME__ __func__
 #endif
 #endif
 
@@ -153,13 +153,13 @@ void implicit_lua::func_info::show_help(bool detailed) const
 static std::unordered_map<std::string, implicit_lua::func_info> s_functionInfos;
 
 #define _LUA_ARG_TYPE(type, name, desc) type
-#define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE##arg_tuple
+#define LUA_ARG_TYPE(arg_tuple) _LUA_ARG_TYPE arg_tuple
 
 #define _LUA_ARG_DECL(type, name, desc) type name
-#define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL##arg_tuple
+#define LUA_ARG_DECL(arg_tuple) _LUA_ARG_DECL arg_tuple
 
 #define _ARG_INFO_INIT(type, name, desc) {#type, #name, desc}
-#define ARG_INFO_INIT(arg_tuple) _ARG_INFO_INIT##arg_tuple
+#define ARG_INFO_INIT(arg_tuple) _ARG_INFO_INIT arg_tuple
 
 #ifdef LUA_FUNC
 #error "The macro is already defined."

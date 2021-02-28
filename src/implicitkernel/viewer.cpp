@@ -2,6 +2,9 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include <condition_variable>
+#include <cmath>
+#include <math.h>
 #include <implicitkernel/kernel_sources.h>
 #include <implicitkernel/viewer.h>
 #pragma warning(push)
@@ -12,6 +15,10 @@
 namespace bgil = boost::gil;
 #include <boost/algorithm/string/case_conv.hpp>
 #pragma warning(pop)
+
+#ifndef _WIN32
+       #include <GL/glx.h>
+#endif
 
 #include <chrono>
 
@@ -186,8 +193,8 @@ void camera::on_mouse_move(GLFWwindow* window, double xpos, double ypos)
     if (s_leftDown)
     {
         float
-            st = std::sinf(s_camTheta), ct = std::cosf(s_camTheta),
-            sp = std::sinf(s_camPhi), cp = std::cosf(s_camPhi);
+            st = std::sin(s_camTheta), ct = std::cos(s_camTheta),
+            sp = std::sin(s_camPhi), cp = std::cos(s_camPhi);
         glm::vec3 dir = { s_camDist * cp * ct, s_camDist * cp * st, s_camDist * sp };
         glm::vec3 pos = s_camTarget + dir;
         dir = glm::normalize(-dir);
@@ -433,7 +440,7 @@ void viewer::render()
                 mousePos = { x, WIN_H - y };
             }
 #endif // CLDEBUG
-            cl::EnqueueArgs args = cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ui64));
+            cl::EnqueueArgs args = cl::EnqueueArgs(s_queue, cl::NDRange(WIN_W, WIN_H), cl::NDRange(s_workGroupSize, 1ULL));
             viewer_data vdata
             {
                 camera::distance(), camera::theta(), camera::phi(),
@@ -565,6 +572,7 @@ void viewer::init_ocl()
     try
     {
         cl::Platform platform = cl::Platform::getDefault();
+        #ifdef _WIN32
         cl_context_properties props[] =
         {
             CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
@@ -572,6 +580,15 @@ void viewer::init_ocl()
             CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
             0
         };
+        #else
+        cl_context_properties props[] =
+        {
+            CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(), 
+            CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(), 
+            CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
+            0
+        };
+        #endif
         std::vector<cl::Device> devices;
         platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
         if (devices.empty())
@@ -661,7 +678,7 @@ void viewer::set_work_group_size()
     {
         throw "too many entities";
     }
-    size_t nEntities = std::max(1ui64, s_numCurrentEntities);
+    size_t nEntities = std::max((uint64_t)1ULL, (uint64_t)s_numCurrentEntities);
     std::vector<size_t> factors;
     auto fIter = std::back_inserter(factors);
     size_t width = (size_t)WIN_W;

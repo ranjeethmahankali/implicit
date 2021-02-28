@@ -23,16 +23,10 @@ namespace implicit_lua
     void run_cmd(const std::string& line);
 
     template <typename T>
-    T read_lua(lua_State* L, int i)
-    {
-        static_assert(false, "Template specialization needed.");
-    };
+    T read_lua(lua_State* L, int i);
 
     template <typename T>
-    void push_lua(lua_State* L, const T& ref)
-    {
-        static_assert(false, "Template specialization needed.");
-    }
+    void push_lua(lua_State* L, const T& ref);
 
     template <typename TReturn, typename... TArgs>
     struct lua_func

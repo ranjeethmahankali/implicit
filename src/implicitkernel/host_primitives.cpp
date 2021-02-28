@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <sstream>
+#include <cstring>
 #pragma warning(push)
 #pragma warning(disable : 26812)
 

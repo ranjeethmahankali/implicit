@@ -1,5 +1,13 @@
 #include <implicitkernel/kernel_sources.h>
+#include <algorithm>
+#include <filesystem>
+#ifdef _MSC_VER
 #include <Shlwapi.h>
+#else
+#include <unistd.h>
+#include <linux/limits.h>
+#define MAX_PATH PATH_MAX
+#endif
 
 static constexpr const char* renderKernelName = "render.cl";
 
@@ -39,7 +47,16 @@ int get_absolute_path(char const* relative, char* absolute, size_t absPathSize)
     PathAppendA(absolute, relative);
     return ret;
 #else
-#error "Getting absolute paths is not implemented for platforms other than windows."
+char result[MAX_PATH];
+ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+auto path = std::filesystem::current_path();
+if (count != -1) {
+    path = std::filesystem::path(result).parent_path() / std::filesystem::path(relative);
+}
+auto pathstr = path.string();
+std::fill(absolute, absolute + MAX_PATH, '\0');
+std::copy(pathstr.begin(), pathstr.end(), absolute);
+return 0;
 #endif
 }
 
