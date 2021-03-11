@@ -99,6 +99,41 @@ float f_halfspace(global uchar* ptr,
   return dot((*pt) - origin, -normal);
 }
 
+float f_polyface(global uchar* ptr,
+                 float3* pt)
+{
+  global uint* uptr = (global uint*)ptr;
+  uint nVerts = *uptr;
+
+  if (nVerts == 0)
+    return 1.0f; // Always outside.
+  if (nVerts > 100) // Too many. Not supported.
+    return 1.0f;
+  
+  global float* coords = (global float*)(uptr + 1);
+  float wsum = 0.0f, dsum = 0.0f;
+  for (uint i0 = 0; i0 < 1; i0++) {
+    uint i1 = ((i0 + nVerts) - 1) % nVerts;
+    uint i2 = (i0 + 1) % nVerts;
+      
+    float3 v1 = (float3)(*(coords + 3 * i1), *(coords + 3 * i1 + 1), *(coords + 3 * i1 + 2));
+    float3 v0 = (float3)(*(coords + 3 * i0), *(coords + 3 * i0 + 1), *(coords + 3 * i0 + 2));
+    float3 v2 = (float3)(*(coords + 3 * i2), *(coords + 3 * i2 + 1), *(coords + 3 * i2 + 2));
+
+    float3 norm = normalize(cross(v2 - v0, v1 - v0));
+    float d = dot(norm, (*pt) - v0);
+    float w = length((*pt) - v0);
+    if (w == 0) {
+      return d;
+    }
+    w = 1.0f / w;
+    wsum += w;
+    dsum = d * w;
+  }
+
+  return dsum / wsum;
+}
+
 float f_simple(global uchar* ptr,
                uchar type,
                float3* pt
@@ -114,6 +149,7 @@ float f_simple(global uchar* ptr,
   case ENT_TYPE_SCHWARZ: return f_schwarz(ptr, pt);
   case ENT_TYPE_CYLINDER: return f_cylinder(ptr, pt);
   case ENT_TYPE_HALFSPACE: return f_halfspace(ptr, pt);
+  case ENT_TYPE_POLYFACE: return f_polyface(ptr, pt);
   default: return 1.0f;
   }
 }
@@ -256,6 +292,7 @@ float f_entity(global uchar* packed,
 #endif
                 )
 {
+  /* printf("Number of entities: %u\n", nEntities); */
   if (nSteps == 0){
     if (nEntities > 0)
       return f_simple(packed, *types, pt

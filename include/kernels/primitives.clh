@@ -8,6 +8,7 @@
 #define ENT_TYPE_HALFSPACE              4
 #define ENT_TYPE_GYROID                 5
 #define ENT_TYPE_SCHWARZ                6
+#define ENT_TYPE_POLYFACE               7
 
 typedef struct PACKED
 {

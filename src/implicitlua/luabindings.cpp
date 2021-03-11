@@ -241,6 +241,28 @@ LUA_FUNC(ent_ref, halfspace, true, "Creates a halfspace defined by a plane",
     return entities::entity::wrap_simple(entities::halfspace({ xorigin, yorigin, zorigin }, { xnormal, ynormal, znormal }));
 }
 
+LUA_FUNC(ent_ref, polyface4, true, "Create a polyface with 4 vertices",
+    (float, x1, "The x coordinate of vertex 1"),
+    (float, y1, "The y coordinate of vertex 1"),
+    (float, z1, "The z coordinate of vertex 1"),
+    (float, x2, "The x coordinate of vertex 2"),
+    (float, y2, "The y coordinate of vertex 2"),
+    (float, z2, "The z coordinate of vertex 2"),
+    (float, x3, "The x coordinate of vertex 3"),
+    (float, y3, "The y coordinate of vertex 3"),
+    (float, z3, "The z coordinate of vertex 3"),
+    (float, x4, "The x coordinate of vertex 4"),
+    (float, y4, "The y coordinate of vertex 4"),
+    (float, z4, "The z coordinate of vertex 4"))
+{
+    return entities::entity::wrap_simple(entities::polyface<4>({{
+        {x1, y1, z1},
+        {x2, y2, z2},
+        {x3, y3, z3},
+        {x4, y4, z4},
+    }}));
+}
+
 LUA_FUNC(ent_ref, gyroid, true, "Creates a gyroid lattice",
     (float, scale, "The scale of the lattice"),
     (float, thickness, "The wall thickness"))
@@ -453,6 +475,7 @@ void implicit_lua::init_functions()
     INIT_LUA_FUNC(L, sphere);
     INIT_LUA_FUNC(L, cylinder);
     INIT_LUA_FUNC(L, halfspace);
+    INIT_LUA_FUNC(L, polyface4);
     INIT_LUA_FUNC(L, gyroid);
     INIT_LUA_FUNC(L, schwarz);
     INIT_LUA_FUNC(L, bunion);
